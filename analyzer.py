@@ -10,19 +10,18 @@ class Analyzer(AnalyzerBase):
         super().__init__(log)
         self.kiwoom = Kiwoom(log, key)
 
-        # self.kiwoom.auto_login()
-        # self.start_process()
+        # Control slot connection
+        self.btn_login.clicked.connect(self.connect_kiwoom)
 
-    def start_process(self):
-        print('Kiwoom test program started')
-        # self.set_OCX()
-        self.connect_slots()
-        self.auto_login()
-        # self.login()
-        # self.set_account_password()
-        self.get_account_list()
-        self.request_account_deposit()
-        self.request_stock_price()
+    def test(self):
+        self.debug('test button clicked')
+
+    def connect_kiwoom(self):
+        self.kiwoom.connect(self.cb_auto_login.isChecked())
+        self.cbb_account.addItems(self.kiwoom.account_list)
+
+    def closeEvent(self, event):
+        self.info('Closing process initializing...')
 
 if __name__ == '__main__':
     log_folder = 'D:/Programming/PC/wAnalyzer/log/'

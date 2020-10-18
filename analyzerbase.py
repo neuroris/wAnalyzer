@@ -1,5 +1,7 @@
 from PyQt5.QtWidgets import QMainWindow, QLabel, QPushButton, QLineEdit, \
-    QTextEdit, QVBoxLayout, QHBoxLayout, QWidget, QRadioButton, QGridLayout
+    QTextEdit, QVBoxLayout, QHBoxLayout, QWidget, QRadioButton, QGridLayout, \
+    QCheckBox, QComboBox, QGroupBox
+from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon
 from wookutil import WookLog
 
@@ -7,83 +9,117 @@ class AnalyzerBase(QMainWindow, WookLog):
     def __init__(self, log):
         super().__init__()
         WookLog.custom_init(self, log)
-
         self.initUI()
 
     def initUI(self):
-        self.central_widget = QWidget()
+        # Test Button
+        self.btn_test = QPushButton('Test')
+        self.btn_test.clicked.connect(self.test)
 
-        self.init_data_scraping()
+        # Account information
+        self.cb_auto_login = QCheckBox('Auto')
+        self.btn_login = QPushButton('Login', self)
+        lb_account = QLabel('Account')
+        self.cbb_account = QComboBox()
+        self.cb_auto_login.setChecked(True)
 
-        # TextEdit
-        self.te_info = QTextEdit()
+        account_grid = QGridLayout()
+        account_grid.addWidget(self.cb_auto_login, 0, 0)
+        account_grid.addWidget(self.btn_login, 0, 1)
+        account_grid.addWidget(lb_account, 1, 0)
+        account_grid.addWidget(self.cbb_account, 1, 1, 1, 2)
+        account_grid.setColumnMinimumWidth(2, 10)
 
-        # Window setting
-        # cw = QWidget()
-        # cw.setLayout(self.data_scraping_vbox)
-        # cw.setLayout(grid)
-        self.setCentralWidget(self.central_widget)
-        self.status_bar = self.statusBar()
-        self.status_bar.showMessage('ready')
-        self.setWindowTitle('Jaewook\'s algorithm analyzer')
-        self.resize(700, 600)
-        self.move(400, 200)
-        self.setWindowIcon(QIcon('nyang1.ico'))
-        self.show()
+        account_gbox = QGroupBox('Account Information')
+        account_gbox.setLayout(account_grid)
 
-    def init_data_scraping(self):
         # Item infomation
-        lb_item_code = QLabel('Item code')
-        lb_item_name = QLabel('Item name')
+        lb_item_code = QLabel('Code')
+        lb_item_name = QLabel('Name')
         self.le_item_code = QLineEdit()
         self.le_item_name = QLineEdit()
 
-        # Period
         lb_period = QLabel('Period')
         self.le_first_day = QLineEdit()
         lb_wave = QLabel('~')
         self.le_last_day = QLineEdit()
 
-        # Destination Folder
-        lb_destination_folder = QLabel('Destination folder')
+        lb_destination_folder = QLabel('Save Folder')
         self.le_destination_folder = QLineEdit()
 
-        # Minute data
-        lb_minute = QLabel('Minute data')
-        rb_1min = QRadioButton('1 min')
-        rb_3min = QRadioButton('3 min')
-        rb_5min = QRadioButton('5 min')
-        rb_10min = QRadioButton('10 min')
-        rb_15min = QRadioButton('15 min')
-        rb_30min = QRadioButton('30 min')
-        rb_45min = QRadioButton('45 min')
-        rb_60min = QRadioButton('60 min')
+        # Item grid layout
+        item_grid = QGridLayout()
+        item_grid.addWidget(lb_item_code, 0, 0)
+        item_grid.addWidget(self.le_item_code, 0, 1)
+        item_grid.addWidget(lb_item_name, 0, 2)
+        item_grid.addWidget(self.le_item_name, 0, 3)
+        item_grid.addWidget(lb_period, 1, 0)
+        item_grid.addWidget(self.le_first_day, 1, 1)
+        item_grid.addWidget(lb_wave, 1, 2, Qt.AlignCenter)
+        item_grid.addWidget(self.le_last_day, 1, 3)
+        item_grid.addWidget(lb_destination_folder, 2, 0)
+        item_grid.addWidget(self.le_destination_folder, 2, 1)
 
-        min_hbox = QHBoxLayout()
-        min_hbox.addWidget(lb_minute)
-        min_hbox.addWidget(rb_1min)
-        min_hbox.addWidget(rb_3min)
-        min_hbox.addWidget(rb_5min)
-        min_hbox.addWidget(rb_10min)
-        min_hbox.addWidget(rb_15min)
-        min_hbox.addWidget(rb_30min)
-        min_hbox.addWidget(rb_45min)
-        min_hbox.addWidget(rb_60min)
+        item_gbox = QGroupBox('Item information')
+        item_gbox.setLayout(item_grid)
 
-        # grid layout
-        grid = QGridLayout()
-        grid.addWidget(lb_item_code,0,0)
-        grid.addWidget(self.le_item_code,0,1)
-        grid.addWidget(lb_item_name,0,2)
-        grid.addWidget(self.le_item_name,0,3)
+        # Data type selection
+        self.rb_tick = QRadioButton('Tick')
+        self.rb_min = QRadioButton('Minute')
+        self.rb_day = QRadioButton('1-Day')
+        self.cbb_tick = QComboBox()
+        self.cbb_min = QComboBox()
+        self.rb_min.setChecked(True)
 
-        grid.addWidget(lb_period,1,0)
-        grid.addWidget(self.le_first_day,1,1)
-        grid.addWidget(lb_wave,1,2)
-        grid.addWidget(self.le_last_day,1,3)
+        self.cbb_tick.addItem('1 tick')
+        self.cbb_tick.addItem('3 tick')
+        self.cbb_tick.addItem('5 tick')
+        self.cbb_tick.addItem('10 tick')
+        self.cbb_tick.addItem('30 tick')
 
-        grid.addWidget(lb_destination_folder,2,0)
-        grid.addWidget(self.le_destination_folder,2,1)
+        self.cbb_min.addItem('1 min')
+        self.cbb_min.addItem('3 min')
+        self.cbb_min.addItem('5 min')
+        self.cbb_min.addItem('10 min')
+        self.cbb_min.addItem('15 min')
+        self.cbb_min.addItem('30 min')
+        self.cbb_min.addItem('60 min')
 
-        # central widget
-        self.central_widget.setLayout(grid)
+        data_type_grid = QGridLayout()
+        data_type_grid.addWidget(self.rb_tick, 0, 0)
+        data_type_grid.addWidget(self.cbb_tick, 0, 1)
+        data_type_grid.addWidget(self.rb_min, 1, 0)
+        data_type_grid.addWidget(self.cbb_min, 1, 1)
+        data_type_grid.addWidget(self.rb_day, 2, 0)
+
+        data_type_gbox = QGroupBox('Data Type')
+        data_type_gbox.setLayout(data_type_grid)
+
+        # TextEdit
+        self.te_info = QTextEdit()
+
+        # Central Layout
+        top_hbox = QHBoxLayout()
+        top_hbox.addWidget(account_gbox)
+        top_hbox.addWidget(item_gbox)
+        top_hbox.addWidget(data_type_gbox)
+        top_hbox.addStretch()
+
+        vbox = QVBoxLayout()
+        vbox.addWidget(self.btn_test)
+        vbox.addLayout(top_hbox)
+        vbox.addWidget(self.te_info)
+
+        # Central widget
+        cw = QWidget()
+        cw.setLayout(vbox)
+
+        # Window setting
+        self.setCentralWidget(cw)
+        self.status_bar = self.statusBar()
+        self.status_bar.showMessage('ready')
+        self.setWindowTitle('Jaewook\'s algorithm analyzer')
+        self.resize(700, 600)
+        self.move(300, 150)
+        self.setWindowIcon(QIcon('nyang1.ico'))
+        self.show()

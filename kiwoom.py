@@ -13,20 +13,18 @@ class Kiwoom(QAxWidget, KiwoomBase):
         super().__init__()
         KiwoomBase.custom_init(self, log, key)
 
-        # self.set_OCX()
-        # self.connect_slots()
-        # self.auto_login()
-        # self.login()
-        # self.set_account_password()
-        # self.get_account_list()
+        self.info('Kiwoom initializing...')
+        self.set_OCX()
+        self.connect_slots()
+
         # self.request_account_deposit()
         # self.request_stock_price()
 
         # self.close_process()
 
     def set_OCX(self):
-        print('Setting OCS instance')
         self.setControl("KHOPENAPI.KHOpenAPICtrl.1")
+        self.info('OCX set')
 
     def connect_slots(self):
         self.OnEventConnect.connect(self.on_login)
@@ -34,17 +32,20 @@ class Kiwoom(QAxWidget, KiwoomBase):
         self.OnReceiveRealData.connect(self.on_receive_real_data)
         self.OnReceiveChejanData.connect(self.on_receive_chejan_data)
         self.OnReceiveMsg.connect(self.on_receive_msg)
-
         self.OnReceiveConditionVer.connect(self.on_receive_condition_ver)
 
-    def on_login(self, err_code):
-        print('Log-in status', errors(err_code))
-        self.login_event_loop.exit()
+    def connect(self, auto_login):
+        if auto_login:
+            self.auto_login()
+        else:
+            self.login()
+            self.set_account_password()
+        self.info('Logged in to Kiwoom server')
+
+        self.get_account_list()
 
     def auto_login(self):
         self.dynamicCall('CommConnect()')
-
-        print('auto_login')
         self.login_event_loop.exec()
 
     def login(self):
@@ -62,14 +63,15 @@ class Kiwoom(QAxWidget, KiwoomBase):
         # self.KOA_Functions('ShowAccountWindow', '')
 
     def get_account_list(self):
-        print('Getting account list')
-        account_list = self.dynamic_call('GetLoginInfo', 'ACCLIST')
+        account_list = self.dynamic_call('GetLoginInfo()', 'ACCLIST')
         self.account_list = account_list.split(';')
         self.account_list.pop()
         self.account_number = self.account_list[0]
 
         for index, account in enumerate(self.account_list):
             print("Account {} : {}".format(index+1, account))
+
+        self.info('Account information acquired')
 
     def request_account_deposit(self, sPrevNext='0'):
         self.set_input_values()
@@ -123,6 +125,10 @@ class Kiwoom(QAxWidget, KiwoomBase):
 
     def demand_interesting_items_update(self):
         self.set_real_reg(self.screen_no_interesting_items, '122630', FID.TRANSACTION_TIME)
+
+    def on_login(self, err_code):
+        self.info('Login status code :', err_code)
+        self.login_event_loop.exit()
 
     def on_receive_tr_data(self, sScrNo, sRQName, sTrCode, sRecordName, sPrevNext):
         if sRQName == 'deposit':
