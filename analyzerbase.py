@@ -1,9 +1,10 @@
 from PyQt5.QtWidgets import QMainWindow, QLabel, QPushButton, QLineEdit, \
     QTextEdit, QVBoxLayout, QHBoxLayout, QWidget, QRadioButton, QGridLayout, \
-    QCheckBox, QComboBox, QGroupBox
+    QCheckBox, QComboBox, QGroupBox, QCalendarWidget, QDateEdit
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon
 from wookutil import WookLog
+from wookdata import *
 
 class AnalyzerBase(QMainWindow, WookLog):
     def __init__(self, log):
@@ -36,11 +37,18 @@ class AnalyzerBase(QMainWindow, WookLog):
         # Item infomation
         lb_item_code = QLabel('Code')
         lb_item_name = QLabel('Name')
-        self.le_item_code = QLineEdit()
-        self.le_item_name = QLineEdit()
+        self.cbb_item_code = QComboBox()
+        self.cbb_item_name = QComboBox()
+        self.cbb_item_code.setEditable(True)
+        self.cbb_item_name.setEditable(True)
+        self.cbb_item_code.addItem(CODE_KODEX_LEVERAGE)
+        self.cbb_item_code.addItem(CODE_KODEX_INVERSE_2X)
+        self.cbb_item_name.addItem(NAME_KODEX_LEVERAGE)
+        self.cbb_item_name.addItem(NAME_KODEX_INVERSE_2X)
 
         lb_period = QLabel('Period')
-        self.le_first_day = QLineEdit()
+        self.le_first_day = QDateEdit()
+        # self.le_first_day = QCalendarWidget()
         lb_wave = QLabel('~')
         self.le_last_day = QLineEdit()
 
@@ -50,9 +58,9 @@ class AnalyzerBase(QMainWindow, WookLog):
         # Item grid layout
         item_grid = QGridLayout()
         item_grid.addWidget(lb_item_code, 0, 0)
-        item_grid.addWidget(self.le_item_code, 0, 1)
+        item_grid.addWidget(self.cbb_item_code, 0, 1)
         item_grid.addWidget(lb_item_name, 0, 2)
-        item_grid.addWidget(self.le_item_name, 0, 3)
+        item_grid.addWidget(self.cbb_item_name, 0, 3)
         item_grid.addWidget(lb_period, 1, 0)
         item_grid.addWidget(self.le_first_day, 1, 1)
         item_grid.addWidget(lb_wave, 1, 2, Qt.AlignCenter)
