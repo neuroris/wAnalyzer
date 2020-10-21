@@ -22,7 +22,11 @@ class Analyzer(AnalyzerBase):
     def test(self):
         self.debug('test button clicked')
 
-        self.get_stock_price_data()
+        # self.get_stock_price_data()
+        from PyQt5.QtWidgets import QInputDialog
+        # self.cal = QInputDialog.getText(self, 'Input', 'enter')
+        # print(self.c.selectedDate())
+        # self.de_first_day.setDate(self.c.selectedDate())
 
     def on_item_code_selection(self, code):
         self.item_code = code

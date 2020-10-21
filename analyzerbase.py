@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QMainWindow, QLabel, QPushButton, QLineEdit, \
     QTextEdit, QVBoxLayout, QHBoxLayout, QWidget, QRadioButton, QGridLayout, \
-    QCheckBox, QComboBox, QGroupBox, QCalendarWidget, QDateEdit
-from PyQt5.QtCore import Qt
+    QCheckBox, QComboBox, QGroupBox, QDateTimeEdit
+from PyQt5.QtCore import Qt, QDateTime
 from PyQt5.QtGui import QIcon
 from wookutil import WookLog
 from wookdata import *
@@ -46,11 +46,18 @@ class AnalyzerBase(QMainWindow, WookLog):
         self.cbb_item_name.addItem(NAME_KODEX_LEVERAGE)
         self.cbb_item_name.addItem(NAME_KODEX_INVERSE_2X)
 
+        current_date = QDateTime.currentDateTime()
         lb_period = QLabel('Period')
-        self.le_first_day = QDateEdit()
-        # self.le_first_day = QCalendarWidget()
+        self.dte_first_day = QDateTimeEdit()
+        self.dte_first_day.setCalendarPopup(True)
+        self.dte_first_day.setDisplayFormat('yyyy-MM-dd')
+        self.dte_first_day.setDateTime(current_date)
         lb_wave = QLabel('~')
         self.le_last_day = QLineEdit()
+        self.dte_last_day = QDateTimeEdit()
+        self.dte_last_day.setCalendarPopup(True)
+        self.dte_last_day.setDisplayFormat('yyyy-MM-dd')
+        self.dte_last_day.setDateTime(current_date)
 
         lb_destination_folder = QLabel('Save Folder')
         self.le_destination_folder = QLineEdit()
@@ -61,10 +68,13 @@ class AnalyzerBase(QMainWindow, WookLog):
         item_grid.addWidget(self.cbb_item_code, 0, 1)
         item_grid.addWidget(lb_item_name, 0, 2)
         item_grid.addWidget(self.cbb_item_name, 0, 3)
+
         item_grid.addWidget(lb_period, 1, 0)
-        item_grid.addWidget(self.le_first_day, 1, 1)
+        item_grid.addWidget(self.dte_first_day, 1, 1)
         item_grid.addWidget(lb_wave, 1, 2, Qt.AlignCenter)
-        item_grid.addWidget(self.le_last_day, 1, 3)
+        item_grid.addWidget(self.dte_last_day, 1, 3)
+
+
         item_grid.addWidget(lb_destination_folder, 2, 0)
         item_grid.addWidget(self.le_destination_folder, 2, 1)
 
