@@ -35,6 +35,8 @@ class Kiwoom(QAxWidget, KiwoomBase):
 
         self.get_account_list()
 
+        return self.login_status
+
     def auto_login(self):
         self.dynamicCall('CommConnect()')
         self.login_event_loop.exec()
@@ -91,6 +93,7 @@ class Kiwoom(QAxWidget, KiwoomBase):
         self.event_loop.exec()
 
     def on_login(self, err_code):
+        self.login_status = err_code
         self.info('Login status code :', err_code)
         self.login_event_loop.exit()
 

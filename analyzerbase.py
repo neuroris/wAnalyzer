@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QMainWindow, QLabel, QPushButton, QLineEdit, \
     QTextEdit, QVBoxLayout, QHBoxLayout, QWidget, QRadioButton, QGridLayout, \
-    QCheckBox, QComboBox, QGroupBox, QDateTimeEdit
+    QCheckBox, QComboBox, QGroupBox, QDateTimeEdit, QAction
 from PyQt5.QtCore import Qt, QDateTime
 from PyQt5.QtGui import QIcon
 from wookutil import WookLog
@@ -41,6 +41,8 @@ class AnalyzerBase(QMainWindow, WookLog):
         self.cbb_item_name = QComboBox()
         self.cbb_item_code.setEditable(True)
         self.cbb_item_name.setEditable(True)
+        self.cbb_item_code.currentTextChanged.connect(self.on_item_code_selection)
+        self.cbb_item_name.currentTextChanged.connect(self.on_item_name_selection)
         self.cbb_item_code.addItem(CODE_KODEX_LEVERAGE)
         self.cbb_item_code.addItem(CODE_KODEX_INVERSE_2X)
         self.cbb_item_name.addItem(NAME_KODEX_LEVERAGE)
@@ -59,24 +61,24 @@ class AnalyzerBase(QMainWindow, WookLog):
         self.dte_last_day.setDisplayFormat('yyyy-MM-dd')
         self.dte_last_day.setDateTime(current_date)
 
-        lb_destination_folder = QLabel('Save Folder')
+        lb_destination_folder = QLabel('Save')
         self.le_destination_folder = QLineEdit()
 
         # Item grid layout
         item_grid = QGridLayout()
         item_grid.addWidget(lb_item_code, 0, 0)
         item_grid.addWidget(self.cbb_item_code, 0, 1)
-        item_grid.addWidget(lb_item_name, 0, 2)
-        item_grid.addWidget(self.cbb_item_name, 0, 3)
+        item_grid.addWidget(lb_item_name, 0, 2, 1, 2)
+        item_grid.addWidget(self.cbb_item_name, 0, 4, 1, 2)
 
         item_grid.addWidget(lb_period, 1, 0)
-        item_grid.addWidget(self.dte_first_day, 1, 1)
-        item_grid.addWidget(lb_wave, 1, 2, Qt.AlignCenter)
-        item_grid.addWidget(self.dte_last_day, 1, 3)
-
+        item_grid.addWidget(self.dte_first_day, 1, 1, 1, 2)
+        item_grid.addWidget(lb_wave, 1, 3, Qt.AlignCenter)
+        item_grid.addWidget(self.dte_last_day, 1, 4, 1, 1)
 
         item_grid.addWidget(lb_destination_folder, 2, 0)
-        item_grid.addWidget(self.le_destination_folder, 2, 1)
+        item_grid.addWidget(self.le_destination_folder, 2, 1, 1, 4)
+
 
         item_gbox = QGroupBox('Item information')
         item_gbox.setLayout(item_grid)
@@ -132,12 +134,40 @@ class AnalyzerBase(QMainWindow, WookLog):
         cw = QWidget()
         cw.setLayout(vbox)
 
+        # Menu actions
+        exit_action = QAction('Exit', self)
+        exit_action.triggered.connect(self.close)
+
+        # Menu bar
+        menu_bar = self.menuBar()
+        file_menu = menu_bar.addMenu('&File')
+        file_menu.addAction(exit_action)
+
         # Window setting
         self.setCentralWidget(cw)
         self.status_bar = self.statusBar()
         self.status_bar.showMessage('ready')
-        self.setWindowTitle('Jaewook\'s algorithm analyzer')
+        self.setWindowTitle('wook\'s algorithm analyzer')
         self.resize(700, 600)
         self.move(300, 150)
         self.setWindowIcon(QIcon('nyang1.ico'))
         self.show()
+
+    def on_item_code_selection(self, code):
+        self.item_code = code
+        if code == CODE_KODEX_LEVERAGE:
+            self.cbb_item_name.setCurrentText(NAME_KODEX_LEVERAGE)
+        elif code == CODE_KODEX_INVERSE_2X:
+            self.cbb_item_name.setCurrentText(NAME_KODEX_INVERSE_2X)
+        else:
+            self.cbb_item_name.setCurrentText('')
+
+    def on_item_name_selection(self, name):
+        if name == NAME_KODEX_LEVERAGE:
+            self.cbb_item_code.setCurrentText(CODE_KODEX_LEVERAGE)
+            self.item_code = CODE_KODEX_LEVERAGE
+        elif name == NAME_KODEX_INVERSE_2X:
+            self.cbb_item_code.setCurrentText(CODE_KODEX_INVERSE_2X)
+            self.item_code = CODE_KODEX_INVERSE_2X
+        else:
+            self.cbb_item_code.setCurrentText('')

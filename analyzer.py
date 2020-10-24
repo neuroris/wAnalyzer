@@ -12,12 +12,10 @@ class Analyzer(AnalyzerBase):
         self.kiwoom = Kiwoom(log, key)
 
         # fields
-        self.item_code = self.cbb_item_code.currentText()
+        # self.item_code = self.cbb_item_code.currentText()
 
         # Control slot connection
-        self.btn_login.clicked.connect(self.connect_kiwoom)
-        self.cbb_item_code.currentTextChanged.connect(self.on_item_code_selection)
-        self.cbb_item_name.currentTextChanged.connect(self.on_item_name_selection)
+        # self.btn_login.clicked.connect(self.connect_kiwoom)
 
     def test(self):
         self.debug('test button clicked')
@@ -28,27 +26,15 @@ class Analyzer(AnalyzerBase):
         # print(self.c.selectedDate())
         # self.de_first_day.setDate(self.c.selectedDate())
 
-    def on_item_code_selection(self, code):
-        self.item_code = code
-        if code == CODE_KODEX_LEVERAGE:
-            self.cbb_item_name.setCurrentText(NAME_KODEX_LEVERAGE)
-        elif code == CODE_KODEX_INVERSE_2X:
-            self.cbb_item_name.setCurrentText(NAME_KODEX_INVERSE_2X)
-        else:
-            self.cbb_item_name.setCurrentText('')
-
-    def on_item_name_selection(self, name):
-        if name == NAME_KODEX_LEVERAGE:
-            self.cbb_item_code.setCurrentText(CODE_KODEX_LEVERAGE)
-            self.item_code = CODE_KODEX_LEVERAGE
-        elif name == NAME_KODEX_INVERSE_2X:
-            self.cbb_item_code.setCurrentText(CODE_KODEX_INVERSE_2X)
-            self.item_code = CODE_KODEX_INVERSE_2X
-        else:
-            self.cbb_item_code.setCurrentText('')
 
     def connect_kiwoom(self):
-        self.kiwoom.connect(self.cb_auto_login.isChecked())
+        login_status = self.kiwoom.connect(self.cb_auto_login.isChecked())
+        if login_status != 0:
+            self.status_bar.showMessage('Something is wrong during log-in')
+            self.error('Login error', login_status)
+            return
+
+        self.status_bar.showMessage('Log in success')
         self.cbb_account.addItems(self.kiwoom.account_list)
 
     def get_stock_price_data(self):
@@ -56,7 +42,9 @@ class Analyzer(AnalyzerBase):
         self.info('Data acquired and saved')
 
     def closeEvent(self, event):
+        self.kiwoom.clear()
         self.info('Closing process initializing...')
+        print(event)
 
 if __name__ == '__main__':
     log_folder = 'D:/Programming/PC/wAnalyzer/log/'

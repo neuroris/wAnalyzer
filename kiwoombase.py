@@ -22,6 +22,8 @@ class KiwoomBase(WookLog):
         self.event_loop = QEventLoop()
         self.login_event_loop = QEventLoop()
 
+        self.login_status = None
+
         self.screen_no_account = '0010'
         self.screen_no_inconclusion = '0020'
         self.screen_no_stock_price = '0030'
