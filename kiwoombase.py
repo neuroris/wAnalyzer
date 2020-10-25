@@ -1,3 +1,4 @@
+from PyQt5.QAxContainer import QAxWidget
 from PyQt5.QtCore import QEventLoop
 from queue import Queue
 import time, os, re
@@ -5,13 +6,11 @@ import pickle
 from wookutil import WookCipher, WookLog
 from wookdata import *
 
-class KiwoomBase(WookLog):
-    def __init__(self):
-        # Original init is not working for the parameters
-        pass
-
-    def custom_init(self, log, key):
+class KiwoomBase(QAxWidget, WookLog):
+    def __init__(self, log, key):
+        super().__init__('KHOPENAPI.KHOpenAPICtrl.1')
         WookLog.custom_init(self, log)
+
         wc = WookCipher(key)
         wc.decrypt_data()
         self.login_id = wc.login_id

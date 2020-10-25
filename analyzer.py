@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QApplication
+from PyQt5.QtWidgets import QApplication, QMessageBox
 from analyzerbase import AnalyzerBase
 from kiwoom import Kiwoom
 import argparse
@@ -11,11 +11,8 @@ class Analyzer(AnalyzerBase):
         super().__init__(log)
         self.kiwoom = Kiwoom(log, key)
 
-        # fields
-        # self.item_code = self.cbb_item_code.currentText()
-
         # Control slot connection
-        # self.btn_login.clicked.connect(self.connect_kiwoom)
+        self.btn_login.clicked.connect(self.connect_kiwoom)
 
     def test(self):
         self.debug('test button clicked')
@@ -42,9 +39,10 @@ class Analyzer(AnalyzerBase):
         self.info('Data acquired and saved')
 
     def closeEvent(self, event):
-        self.kiwoom.clear()
         self.info('Closing process initializing...')
-        print(event)
+        self.kiwoom.clear()
+        self.kiwoom.deleteLater()
+        self.deleteLater()
 
 if __name__ == '__main__':
     log_folder = 'D:/Programming/PC/wAnalyzer/log/'

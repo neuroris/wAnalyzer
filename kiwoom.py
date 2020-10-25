@@ -4,20 +4,14 @@ from wookauto import LoginPasswordThread, AccountPasswordThread
 from wookdata import *
 import time, os, re
 
-class Kiwoom(QAxWidget, KiwoomBase):
+class Kiwoom(KiwoomBase):
     def __init__(self, log, key):
-        super().__init__()
-        KiwoomBase.custom_init(self, log, key)
+        super().__init__(log, key)
 
         self.info('Kiwoom initializing...')
-        self.set_OCX()
         self.connect_slots()
 
         # self.request_stock_price()
-
-    def set_OCX(self):
-        self.setControl("KHOPENAPI.KHOpenAPICtrl.1")
-        self.info('OCX set')
 
     def connect_slots(self):
         self.OnEventConnect.connect(self.on_login)
@@ -119,6 +113,8 @@ class Kiwoom(QAxWidget, KiwoomBase):
 
         day = '20201008'
         day_re = re.compile(day+'.*')
+
+        file_name = ''
 
         if item_code == 122630:
             file_name = 'D:/Algorithm/leverage minute/' + day + '.csv'

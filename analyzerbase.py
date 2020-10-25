@@ -1,8 +1,9 @@
 from PyQt5.QtWidgets import QMainWindow, QLabel, QPushButton, QLineEdit, \
     QTextEdit, QVBoxLayout, QHBoxLayout, QWidget, QRadioButton, QGridLayout, \
-    QCheckBox, QComboBox, QGroupBox, QDateTimeEdit, QAction
+    QCheckBox, QComboBox, QGroupBox, QDateTimeEdit, QAction, QDockWidget
 from PyQt5.QtCore import Qt, QDateTime
 from PyQt5.QtGui import QIcon
+import json
 from wookutil import WookLog
 from wookdata import *
 
@@ -10,7 +11,14 @@ class AnalyzerBase(QMainWindow, WookLog):
     def __init__(self, log):
         super().__init__()
         WookLog.custom_init(self, log)
+
+        with open('setting.json') as r_file:
+            self.setting = json.load(r_file)
+
         self.initUI()
+
+        # self.setStyleSheet('background:rgb(0,120,120)')
+
 
     def initUI(self):
         # Test Button
@@ -48,6 +56,7 @@ class AnalyzerBase(QMainWindow, WookLog):
         self.cbb_item_name.addItem(NAME_KODEX_LEVERAGE)
         self.cbb_item_name.addItem(NAME_KODEX_INVERSE_2X)
 
+        # Period
         current_date = QDateTime.currentDateTime()
         lb_period = QLabel('Period')
         self.dte_first_day = QDateTimeEdit()
@@ -60,9 +69,13 @@ class AnalyzerBase(QMainWindow, WookLog):
         self.dte_last_day.setCalendarPopup(True)
         self.dte_last_day.setDisplayFormat('yyyy-MM-dd')
         self.dte_last_day.setDateTime(current_date)
+        self.cb_one_day = QCheckBox('1-day')
+        self.cb_one_day.setChecked(self.setting['one_day'])
 
-        lb_destination_folder = QLabel('Save')
-        self.le_destination_folder = QLineEdit()
+        # Save Folder
+        lb_save_folder = QLabel('Save')
+        self.le_save_folder = QLineEdit()
+        self.le_save_folder.setText(self.setting['save_folder'])
 
         # Item grid layout
         item_grid = QGridLayout()
@@ -75,35 +88,35 @@ class AnalyzerBase(QMainWindow, WookLog):
         item_grid.addWidget(self.dte_first_day, 1, 1, 1, 2)
         item_grid.addWidget(lb_wave, 1, 3, Qt.AlignCenter)
         item_grid.addWidget(self.dte_last_day, 1, 4, 1, 1)
+        item_grid.addWidget(self.cb_one_day, 1, 5)
 
-        item_grid.addWidget(lb_destination_folder, 2, 0)
-        item_grid.addWidget(self.le_destination_folder, 2, 1, 1, 4)
-
+        item_grid.addWidget(lb_save_folder, 2, 0)
+        item_grid.addWidget(self.le_save_folder, 2, 1, 1, 4)
 
         item_gbox = QGroupBox('Item information')
         item_gbox.setLayout(item_grid)
 
         # Data type selection
         self.rb_tick = QRadioButton('Tick')
-        self.rb_min = QRadioButton('Minute')
-        self.rb_day = QRadioButton('1-Day')
+        self.rb_min = QRadioButton('Min')
+        self.rb_day = QRadioButton('Day')
         self.cbb_tick = QComboBox()
         self.cbb_min = QComboBox()
         self.rb_min.setChecked(True)
 
-        self.cbb_tick.addItem('1 tick')
-        self.cbb_tick.addItem('3 tick')
-        self.cbb_tick.addItem('5 tick')
-        self.cbb_tick.addItem('10 tick')
-        self.cbb_tick.addItem('30 tick')
+        self.cbb_tick.addItem('1')
+        self.cbb_tick.addItem('3')
+        self.cbb_tick.addItem('5')
+        self.cbb_tick.addItem('10')
+        self.cbb_tick.addItem('30')
 
-        self.cbb_min.addItem('1 min')
-        self.cbb_min.addItem('3 min')
-        self.cbb_min.addItem('5 min')
-        self.cbb_min.addItem('10 min')
-        self.cbb_min.addItem('15 min')
-        self.cbb_min.addItem('30 min')
-        self.cbb_min.addItem('60 min')
+        self.cbb_min.addItem('1')
+        self.cbb_min.addItem('3')
+        self.cbb_min.addItem('5')
+        self.cbb_min.addItem('10')
+        self.cbb_min.addItem('15')
+        self.cbb_min.addItem('30')
+        self.cbb_min.addItem('60')
 
         data_type_grid = QGridLayout()
         data_type_grid.addWidget(self.rb_tick, 0, 0)
@@ -126,22 +139,26 @@ class AnalyzerBase(QMainWindow, WookLog):
         top_hbox.addStretch()
 
         vbox = QVBoxLayout()
-        vbox.addWidget(self.btn_test)
         vbox.addLayout(top_hbox)
         vbox.addWidget(self.te_info)
+        vbox.addWidget(self.btn_test)
 
         # Central widget
         cw = QWidget()
         cw.setLayout(vbox)
 
-        # Menu actions
-        exit_action = QAction('Exit', self)
-        exit_action.triggered.connect(self.close)
-
         # Menu bar
         menu_bar = self.menuBar()
+        menu_bar.setStyleSheet('background:rgb(140,230,255)')
+        exit_action = QAction('Exit', self)
+        exit_action.triggered.connect(self.close)
         file_menu = menu_bar.addMenu('&File')
         file_menu.addAction(exit_action)
+
+        setting_action = QAction('Setting', self)
+        setting_action.triggered.connect(self.edit_setting)
+        edit_menu = menu_bar.addMenu('&Edit')
+        edit_menu.addAction(setting_action)
 
         # Window setting
         self.setCentralWidget(cw)
@@ -152,6 +169,9 @@ class AnalyzerBase(QMainWindow, WookLog):
         self.move(300, 150)
         self.setWindowIcon(QIcon('nyang1.ico'))
         self.show()
+
+    def edit_setting(self):
+        self.debug('setting')
 
     def on_item_code_selection(self, code):
         self.item_code = code
