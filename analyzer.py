@@ -11,20 +11,10 @@ class Analyzer(AnalyzerBase):
         super().__init__(log)
         self.kiwoom = Kiwoom(log, key)
 
-        # Control slot connection
-        self.btn_login.clicked.connect(self.connect_kiwoom)
-
     def test(self):
         self.debug('test button clicked')
 
-        # self.get_stock_price_data()
-        from PyQt5.QtWidgets import QInputDialog
-        # self.cal = QInputDialog.getText(self, 'Input', 'enter')
-        # print(self.c.selectedDate())
-        # self.de_first_day.setDate(self.c.selectedDate())
-
-
-    def connect_kiwoom(self):
+    def on_connect_kiwoom(self):
         login_status = self.kiwoom.connect(self.cb_auto_login.isChecked())
         if login_status != 0:
             self.status_bar.showMessage('Something is wrong during log-in')
@@ -34,8 +24,11 @@ class Analyzer(AnalyzerBase):
         self.status_bar.showMessage('Log in success')
         self.cbb_account.addItems(self.kiwoom.account_list)
 
-    def get_stock_price_data(self):
-        self.kiwoom.request_stock_price()
+    def on_select_account(self, account):
+        self.kiwoom.account_number = int(account)
+
+    def get_stock_price(self):
+        # self.kiwoom.request_stock_price()
         self.info('Data acquired and saved')
 
     def closeEvent(self, event):

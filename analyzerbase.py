@@ -17,9 +17,6 @@ class AnalyzerBase(QMainWindow, WookLog):
 
         self.initUI()
 
-        # self.setStyleSheet('background:rgb(0,120,120)')
-
-
     def initUI(self):
         # Test Button
         self.btn_test = QPushButton('Test')
@@ -27,10 +24,12 @@ class AnalyzerBase(QMainWindow, WookLog):
 
         # Account information
         self.cb_auto_login = QCheckBox('Auto')
+        self.cb_auto_login.setChecked(True)
         self.btn_login = QPushButton('Login', self)
+        self.btn_login.clicked.connect(self.on_connect_kiwoom)
         lb_account = QLabel('Account')
         self.cbb_account = QComboBox()
-        self.cb_auto_login.setChecked(True)
+        self.cbb_account.currentTextChanged.connect(self.on_select_account)
 
         account_grid = QGridLayout()
         account_grid.addWidget(self.cb_auto_login, 0, 0)
@@ -71,6 +70,9 @@ class AnalyzerBase(QMainWindow, WookLog):
         self.dte_last_day.setDateTime(current_date)
         self.cb_one_day = QCheckBox('1-day')
         self.cb_one_day.setChecked(self.setting['one_day'])
+
+        self.dte_first_day.dateChanged.connect(self.on_change_first_date)
+        self.dte_last_day.dateChanged.connect(self.on_change_last_date)
 
         # Save Folder
         lb_save_folder = QLabel('Save')
@@ -128,6 +130,13 @@ class AnalyzerBase(QMainWindow, WookLog):
         data_type_gbox = QGroupBox('Data Type')
         data_type_gbox.setLayout(data_type_grid)
 
+        # Go button
+        self.btn_go = QPushButton('&Go')
+        self.btn_go.clicked.connect(self.get_stock_price)
+        self.btn_go.setMaximumHeight(100)
+        go_grid = QGridLayout()
+        go_grid.addWidget(self.btn_go, 0, 0, 3, 1)
+
         # TextEdit
         self.te_info = QTextEdit()
 
@@ -136,6 +145,7 @@ class AnalyzerBase(QMainWindow, WookLog):
         top_hbox.addWidget(account_gbox)
         top_hbox.addWidget(item_gbox)
         top_hbox.addWidget(data_type_gbox)
+        top_hbox.addLayout(go_grid)
         top_hbox.addStretch()
 
         vbox = QVBoxLayout()
@@ -191,3 +201,11 @@ class AnalyzerBase(QMainWindow, WookLog):
             self.item_code = CODE_KODEX_INVERSE_2X
         else:
             self.cbb_item_code.setCurrentText('')
+
+    def on_change_first_date(self, date):
+        if self.cb_one_day.isChecked():
+            self.dte_last_day.setDate(date)
+
+    def on_change_last_date(self, date):
+        if self.cb_one_day.isChecked():
+            self.dte_first_day.setDate(date)

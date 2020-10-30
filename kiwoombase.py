@@ -37,6 +37,8 @@ class KiwoomBase(QAxWidget, WookLog):
         self.purchase_total_sum = 0
         self.profit_evaluated_sum = 0
         self.profit_rate_sum = 0
+        self.item_code = 0
+        self.item_name = ''
 
         self.stocks = list()
         self.portfolio_stocks = list()
