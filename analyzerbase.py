@@ -1,21 +1,34 @@
 from PyQt5.QtWidgets import QMainWindow, QLabel, QPushButton, QLineEdit, \
     QTextEdit, QVBoxLayout, QHBoxLayout, QWidget, QRadioButton, QGridLayout, \
-    QCheckBox, QComboBox, QGroupBox, QDateTimeEdit, QAction, QDockWidget
+    QCheckBox, QComboBox, QGroupBox, QDateTimeEdit, QAction, QFileDialog
 from PyQt5.QtCore import Qt, QDateTime
 from PyQt5.QtGui import QIcon
 import json
+from kiwoom import Kiwoom
 from wookutil import WookLog
 from wookdata import *
 
 class AnalyzerBase(QMainWindow, WookLog):
-    def __init__(self, log):
+    def __init__(self, log, key):
         super().__init__()
         WookLog.custom_init(self, log)
 
         with open('setting.json') as r_file:
             self.setting = json.load(r_file)
 
+        self.kiwoom = Kiwoom(log, key)
+        self.kiwoom.signal = self.on_kiwoom_signal
         self.initUI()
+        self.initKiwoom()
+
+    def initKiwoom(self):
+        self.kiwoom.item_code = self.cbb_item_code.currentText()
+        self.kiwoom.item_name = self.cbb_item_name.currentText()
+        self.kiwoom.first_day = self.dte_first_day.text()
+        self.kiwoom.last_day = self.dte_last_day.text()
+        self.kiwoom.save_folder = self.le_save_folder.text()
+        self.kiwoom.tick_type = self.cbb_tick.currentText()
+        self.kiwoom.min_type = self.cbb_min.currentText()
 
     def initUI(self):
         # Test Button
@@ -48,8 +61,8 @@ class AnalyzerBase(QMainWindow, WookLog):
         self.cbb_item_name = QComboBox()
         self.cbb_item_code.setEditable(True)
         self.cbb_item_name.setEditable(True)
-        self.cbb_item_code.currentTextChanged.connect(self.on_item_code_selection)
-        self.cbb_item_name.currentTextChanged.connect(self.on_item_name_selection)
+        self.cbb_item_code.currentTextChanged.connect(self.on_select_item_code)
+        self.cbb_item_name.currentTextChanged.connect(self.on_select_item_name)
         self.cbb_item_code.addItem(CODE_KODEX_LEVERAGE)
         self.cbb_item_code.addItem(CODE_KODEX_INVERSE_2X)
         self.cbb_item_name.addItem(NAME_KODEX_LEVERAGE)
@@ -71,13 +84,16 @@ class AnalyzerBase(QMainWindow, WookLog):
         self.cb_one_day = QCheckBox('1-day')
         self.cb_one_day.setChecked(self.setting['one_day'])
 
-        self.dte_first_day.dateChanged.connect(self.on_change_first_date)
-        self.dte_last_day.dateChanged.connect(self.on_change_last_date)
+        self.dte_first_day.dateChanged.connect(self.on_change_first_day)
+        self.dte_last_day.dateChanged.connect(self.on_change_last_day)
 
         # Save Folder
         lb_save_folder = QLabel('Save')
         self.le_save_folder = QLineEdit()
         self.le_save_folder.setText(self.setting['save_folder'])
+        self.le_save_folder.editingFinished.connect(self.on_edit_save_folder)
+        self.btn_change_folder = QPushButton('Change')
+        self.btn_change_folder.clicked.connect(self.on_change_save_folder)
 
         # Item grid layout
         item_grid = QGridLayout()
@@ -94,6 +110,7 @@ class AnalyzerBase(QMainWindow, WookLog):
 
         item_grid.addWidget(lb_save_folder, 2, 0)
         item_grid.addWidget(self.le_save_folder, 2, 1, 1, 4)
+        item_grid.addWidget(self.btn_change_folder, 2, 5)
 
         item_gbox = QGroupBox('Item information')
         item_gbox.setLayout(item_grid)
@@ -104,21 +121,25 @@ class AnalyzerBase(QMainWindow, WookLog):
         self.rb_day = QRadioButton('Day')
         self.cbb_tick = QComboBox()
         self.cbb_min = QComboBox()
-        self.rb_min.setChecked(True)
+        # self.rb_min.setChecked(True)
+        self.rb_tick.setChecked(True)
 
-        self.cbb_tick.addItem('1')
-        self.cbb_tick.addItem('3')
-        self.cbb_tick.addItem('5')
-        self.cbb_tick.addItem('10')
-        self.cbb_tick.addItem('30')
+        self.cbb_tick.addItem(TICK_1)
+        self.cbb_tick.addItem(TICK_3)
+        self.cbb_tick.addItem(TICK_5)
+        self.cbb_tick.addItem(TICK_10)
+        self.cbb_tick.addItem(TICK_30)
 
-        self.cbb_min.addItem('1')
-        self.cbb_min.addItem('3')
-        self.cbb_min.addItem('5')
-        self.cbb_min.addItem('10')
-        self.cbb_min.addItem('15')
-        self.cbb_min.addItem('30')
-        self.cbb_min.addItem('60')
+        self.cbb_min.addItem(MIN_1)
+        self.cbb_min.addItem(MIN_3)
+        self.cbb_min.addItem(MIN_5)
+        self.cbb_min.addItem(MIN_10)
+        self.cbb_min.addItem(MIN_15)
+        self.cbb_min.addItem(MIN_30)
+        self.cbb_min.addItem(MIN_60)
+
+        self.cbb_tick.currentTextChanged.connect(self.on_change_tick)
+        self.cbb_min.currentTextChanged.connect(self.on_change_min)
 
         data_type_grid = QGridLayout()
         data_type_grid.addWidget(self.rb_tick, 0, 0)
@@ -183,8 +204,18 @@ class AnalyzerBase(QMainWindow, WookLog):
     def edit_setting(self):
         self.debug('setting')
 
-    def on_item_code_selection(self, code):
-        self.item_code = code
+    def on_kiwoom_signal(self, *args):
+        message = ''
+        for arg in args:
+            message += str(arg) + ' '
+
+        self.te_info.append(message)
+
+    def on_select_account(self, account):
+        self.kiwoom.account_number = int(account)
+
+    def on_select_item_code(self, code):
+        self.kiwoom.item_code = int(code)
         if code == CODE_KODEX_LEVERAGE:
             self.cbb_item_name.setCurrentText(NAME_KODEX_LEVERAGE)
         elif code == CODE_KODEX_INVERSE_2X:
@@ -192,20 +223,39 @@ class AnalyzerBase(QMainWindow, WookLog):
         else:
             self.cbb_item_name.setCurrentText('')
 
-    def on_item_name_selection(self, name):
+    def on_select_item_name(self, name):
+        self.kiwoom.item_name = name
         if name == NAME_KODEX_LEVERAGE:
             self.cbb_item_code.setCurrentText(CODE_KODEX_LEVERAGE)
-            self.item_code = CODE_KODEX_LEVERAGE
         elif name == NAME_KODEX_INVERSE_2X:
             self.cbb_item_code.setCurrentText(CODE_KODEX_INVERSE_2X)
-            self.item_code = CODE_KODEX_INVERSE_2X
         else:
             self.cbb_item_code.setCurrentText('')
 
-    def on_change_first_date(self, date):
+    def on_change_first_day(self, date):
+        self.kiwoom.first_day = date.toString('yyyy-MM-dd')
         if self.cb_one_day.isChecked():
             self.dte_last_day.setDate(date)
 
-    def on_change_last_date(self, date):
+    def on_change_last_day(self, date):
+        self.kiwoom.last_day = date.toString('yyyy-MM-dd')
         if self.cb_one_day.isChecked():
             self.dte_first_day.setDate(date)
+
+    def on_edit_save_folder(self):
+        folder = self.le_save_folder.text()
+        self.kiwoom.save_folder = folder
+
+    def on_change_save_folder(self):
+        folder = QFileDialog.getExistingDirectory(self, 'Select folder', self.le_save_folder.text())
+        if folder != '':
+            self.le_save_folder.setText(folder)
+            self.kiwoom.save_folder = folder
+
+    def on_change_tick(self, text):
+        self.rb_tick.setChecked(True)
+        self.kiwoom.tick_type = text
+
+    def on_change_min(self, text):
+        self.rb_min.setChecked(True)
+        self.kiwoom.min_type = text

@@ -84,24 +84,40 @@ class WookLog:
         pass
 
     def custom_init(self, log):
-        self.log = log
+        self.debug = self.get_logger(log.debug)
+        self.info = self.get_logger(log.info)
+        self.warning = self.get_logger(log.warning)
+        self.error = self.get_logger(log.error)
+        self.critical = self.get_logger(log.critical)
 
-    def debug(self, message, *args):
-        message += ' %s'*len(args)
-        self.log.debug(message, *args)
+    def get_logger(self, logger):
+        def custom_logger(message, *args):
+            message = str(message)
+            message += ' %s'*len(args)
+            logger(message, *args)
+        return custom_logger
 
-    def info(self, message, *args):
-        message += ' %s'*len(args)
-        self.log.info(message, *args)
-
-    def warning(self, message, *args):
-        message += ' %s' * len(args)
-        self.log.warning(message, *args)
-
-    def error(self, message, *args):
-        message += ' %s' * len(args)
-        self.log.error(message, *args)
-
-    def critical(self, message, *args):
-        message += ' %s' * len(args)
-        self.log.critical(message, *args)
+    # def debug(self, message, *args):
+    #     message = str(message)
+    #     message += ' %s'*len(args)
+    #     self.log.debug(message, *args)
+    #
+    # def info(self, message, *args):
+    #     message = str(message)
+    #     message += ' %s'*len(args)
+    #     self.log.info(message, *args)
+    #
+    # def warning(self, message, *args):
+    #     message = str(message)
+    #     message += ' %s' * len(args)
+    #     self.log.warning(message, *args)
+    #
+    # def error(self, message, *args):
+    #     message = str(message)
+    #     message += ' %s' * len(args)
+    #     self.log.error(message, *args)
+    #
+    # def critical(self, message, *args):
+    #     message = str(message)
+    #     message += ' %s' * len(args)
+    #     self.log.critical(message, *args)

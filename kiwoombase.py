@@ -1,5 +1,6 @@
 from PyQt5.QAxContainer import QAxWidget
 from PyQt5.QtCore import QEventLoop
+from PyQt5.QtTest import QTest
 from queue import Queue
 import time, os, re
 import pickle
@@ -21,6 +22,7 @@ class KiwoomBase(QAxWidget, WookLog):
         self.event_loop = QEventLoop()
         self.login_event_loop = QEventLoop()
 
+        self.signal = None
         self.login_status = None
 
         self.screen_no_account = '0010'
@@ -39,19 +41,30 @@ class KiwoomBase(QAxWidget, WookLog):
         self.profit_rate_sum = 0
         self.item_code = 0
         self.item_name = ''
+        self.first_day = ''
+        self.last_day = ''
+        self.save_folder = ''
+        self.working_date = 0
+        self.tick_type = ''
+        self.min_type = ''
+        self.stock_prices = list()
 
         self.stocks = list()
         self.portfolio_stocks = list()
-        self.balace_stocks = list()
+        # self.balance_stocks = list()
         self.interesting_stocks = list()
         self.unconcluded_stocks = list()
 
         self.previous_time = 0.0
         self.reference_time = Queue()
         self.consecutive_interval_limit = 0.25
-        self.request_block_interval_limit = 6.5
-        self.request_block_size = 25
-        self.request_block_waiting = 10
+        self.request_block_interval_limit = 5
+        self.request_block_size = 10
+        self.request_block_waiting = 0.5
+        self.request_count = 0
+        self.request_count_threshold = 70
+        self.request_count_interval = 60
+        self.request_count_waiting = 30
 
         self.interesting_stocks_file = 'interesting_stocks.bin'
 
@@ -157,18 +170,32 @@ class KiwoomBase(QAxWidget, WookLog):
         time_interval = time.time() - self.previous_time
         if time_interval < self.consecutive_interval_limit:
             waiting_time = self.consecutive_interval_limit - time_interval
-            time.sleep(waiting_time)
+            # time.sleep(waiting_time)
+            QTest.qSleep(waiting_time)
 
         if self.reference_time.qsize() == self.request_block_size:
             reference_time = self.reference_time.get()
         else:
             reference_time = 0
-
         reference_time_interval = time.time() - reference_time
-        if reference_time_interval < self.request_block_interval_limit:
-            print('now waiting... for request block interval limit {}s'.format(self.request_block_waiting))
-            time.sleep(self.request_block_waiting)
+        # self.debug('Request count', self.request_count)
+        # self.debug('Reference time interval', reference_time_interval)
+        self.signal('Request count', self.request_count + 1)
+        self.signal('Reference time interval', reference_time_interval)
 
+        if reference_time_interval < self.request_block_interval_limit:
+            print('now waiting {}s... for request block interval'.format(self.request_block_waiting))
+            # time.sleep(self.request_block_waiting)
+            QTest.qSleep(self.request_block_waiting * 1000)
+
+        if self.request_count >= self.request_count_threshold:
+            if (self.request_count - self.request_count_threshold) % self.request_count_interval == 0:
+                print('now waiting {}s... for request count over {}'.format(self.request_count_waiting,
+                                                                            self.request_count))
+                # time.sleep(self.request_count_waiting)
+                QTest.qSleep(self.request_count_waiting * 1000)
+
+        self.request_count += 1
         current_time = time.time()
         self.previous_time = current_time
         self.reference_time.put(current_time)

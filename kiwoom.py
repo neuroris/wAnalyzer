@@ -26,7 +26,6 @@ class Kiwoom(KiwoomBase):
             self.login()
             self.set_account_password()
         self.info('Logged in to Kiwoom server')
-
         self.get_account_list()
 
         return self.login_status
@@ -50,41 +49,32 @@ class Kiwoom(KiwoomBase):
         # self.KOA_Functions('ShowAccountWindow', '')
 
     def get_account_list(self):
+        self.info('Getting account infomation...')
         account_list = self.dynamic_call('GetLoginInfo()', 'ACCLIST')
         self.account_list = account_list.split(';')
         self.account_list.pop()
-        self.account_number = self.account_list[0]
 
         for index, account in enumerate(self.account_list):
-            print("Account {} : {}".format(index+1, account))
+            self.debug("Account {} : {}".format(index+1, account))
 
-        self.info('Account information acquired')
-
-    def request_stock_price(self, reference_date=None, sPrevNext='0'):
-        if reference_date is None:
-            reference_date = time.strftime('%Y%m%d')
-        code_list = self.get_code_list_by_market(MARKET_KOSDAQ)
-        num_list = len(code_list)
-
-        kodex_leverage = '122630'
-        self.request_stock_price_min_proper(kodex_leverage, sPrevNext)
-        kodex_inverse = '252670'
-        self.request_stock_price_min_proper(kodex_inverse, sPrevNext)
-        self.init_screen_no(self.screen_no_stock_price)
-
-    def request_stock_price_proper(self, item_code, reference_date, sPrevNext='0'):
-        self.set_input_value(ITEM_CODE, item_code)
-        self.set_input_value(REFERENCE_DATE, reference_date)
+    def request_stock_price_tick(self, sPrevNext='0'):
+        self.set_input_value(ITEM_CODE, self.item_code)
+        self.set_input_value(TIC_RANGE, self.tick_type)
         self.set_input_value(CORRECTED_PRICE_TYPE, '1')
-        self.comm_rq_data('stock price', REQUEST_DAY_PRICE, sPrevNext, self.screen_no_stock_price)
+        self.comm_rq_data('stock price tick', REQUEST_TICK_PRICE, sPrevNext, self.screen_no_stock_price)
         self.event_loop.exec()
+        self.working_date = 0
 
-    def request_stock_price_min_proper(self, item_code, sPrevNext='0'):
-        self.set_input_value(ITEM_CODE, item_code)
-        self.set_input_value(TIC_RANGE, ONE_MIN)
+    def request_stock_price_min(self, sPrevNext='0'):
+        self.set_input_value(ITEM_CODE, self.item_code)
+        self.set_input_value(TIC_RANGE, self.min_type)
         self.set_input_value(CORRECTED_PRICE_TYPE, '1')
-        self.comm_rq_data('stock price', REQUEST_MINUTE_PRICE, sPrevNext, self.screen_no_stock_price)
+        self.comm_rq_data('stock price min', REQUEST_MINUTE_PRICE, sPrevNext, self.screen_no_stock_price)
         self.event_loop.exec()
+        self.working_date = 0
+
+    def request_stock_price_day(self, sPrevNext='0'):
+        pass
 
     def on_login(self, err_code):
         self.login_status = err_code
@@ -92,8 +82,10 @@ class Kiwoom(KiwoomBase):
         self.login_event_loop.exit()
 
     def on_receive_tr_data(self, sScrNo, sRQName, sTrCode, sRecordName, sPrevNext):
-        if sRQName == 'stock price':
-            self.get_stock_price(sTrCode, sRQName, sPrevNext)
+        if sRQName == 'stock price tick':
+            self.get_stock_price_tick(sTrCode, sRQName, sPrevNext)
+        elif sRQName == 'stock price min':
+            self.get_stock_price_min(sTrCode, sRQName, sPrevNext)
 
         if sPrevNext != '2':
             self.init_screen_no(sScrNo)
@@ -102,63 +94,126 @@ class Kiwoom(KiwoomBase):
     def on_receive_msg(self, sScrNo, sRQName, sTrCode, sMsg):
         print('Receiving message', sScrNo, sRQName, sTrCode, sMsg)
 
-    def get_stock_price(self, sTrCode, sRQName, sPrevNext):
-        item_code = self.get_comm_data(sTrCode, sRQName, 0, ITEM_CODE)
-        # data = self.get_comm_data_ex(sTrCode, sRQName)
+    # def get_stock_price_tick(self, sTrCode, sRQName, sPrevNext):
+    #     get_comm_data = self.new_get_comm_data(sTrCode, sRQName)
+    #     number_of_item = self.get_repeat_count(sTrCode, sRQName)
+    #     first_day = int(self.first_day.replace('-',''))
+    #     last_day = int(self.last_day.replace('-',''))
+    #
+    #     for count in range(number_of_item):
+    #         transaction_time = str(get_comm_data(count, TRANSACTION_TIME))
+    #         current_date = int(transaction_time[:8])
+    #         if current_date > last_day:
+    #             continue
+    #
+    #         if self.working_date != current_date:
+    #             if self.working_date != 0:
+    #                 header = 'Transaction time, opening, highest, lowest, current'
+    #                 self.stock_prices.append(header)
+    #                 self.stock_prices.reverse()
+    #                 file_data = '\n'.join(self.stock_prices)
+    #                 saving_file_name = self.save_folder + self.item_name + ' ' + str(self.working_date) + '.csv'
+    #                 if os.path.exists(saving_file_name):
+    #                     os.remove(saving_file_name)
+    #                 with open(saving_file_name, 'a') as saving_file:
+    #                     saving_file.write(file_data)
+    #                 self.stock_prices.clear()
+    #                 if current_date < first_day:
+    #                     self.init_screen_no(self.screen_no_stock_price)
+    #                     self.event_loop.exit()
+    #                     return
+    #             self.working_date = current_date
+    #
+    #         opening_price = str(abs(get_comm_data(count, OPENING_PRICE)))
+    #         highest_price = str(abs(get_comm_data(count, HIGHEST_PRICE)))
+    #         lowest_price = str(abs(get_comm_data(count, LOWEST_PRICE)))
+    #         current_price = str(abs(get_comm_data(count, CURRENT_PRICE)))
+    #
+    #         # time = transaction_time[:-2]
+    #         time = transaction_time
+    #         # time = time[:4] + '-' + time[4:6] + '-' + time[6:8] + ' ' + time[8:10] + ':' + time[10:]
+    #
+    #         price = [time+'_', opening_price, highest_price, lowest_price, current_price]
+    #         data = ','.join(price)
+    #         self.debug(data)
+    #         self.stock_prices.append(data)
+    #
+    #     if sPrevNext == '2':
+    #         self.request_stock_price_tick(sPrevNext)
 
+
+    def get_stock_price_tick(self, sTrCode, sRQName, sPrevNext):
         get_comm_data = self.new_get_comm_data(sTrCode, sRQName)
-
         number_of_item = self.get_repeat_count(sTrCode, sRQName)
-        print(number_of_item)
-
-        day = '20201008'
-        day_re = re.compile(day+'.*')
-
-        file_name = ''
-
-        if item_code == 122630:
-            file_name = 'D:/Algorithm/leverage minute/' + day + '.csv'
-        elif item_code == 252670:
-            file_name = 'D:/Algorithm/inverse minute/' + day + '.csv'
-        else:
-            print('wrong code')
-
-        if os.path.exists(file_name):
-            os.remove(file_name)
-        file = open(file_name, 'a')
-        file.write('time,opening,highest,lowest,current\n')
-        data_list = list()
+        saving_file_name = self.save_folder + self.item_name + ' ' + str(self.working_date) + '.csv'
 
         for count in range(number_of_item):
-            date = self.get_comm_data(sTrCode, sRQName, count, DATE)
-            time = str(get_comm_data(count, TRANSACTION_TIME))
-
-            # if not day_re.match(time):
-            #     continue
+            transaction_time = str(get_comm_data(count, TRANSACTION_TIME))
 
             opening_price = str(abs(get_comm_data(count, OPENING_PRICE)))
             highest_price = str(abs(get_comm_data(count, HIGHEST_PRICE)))
             lowest_price = str(abs(get_comm_data(count, LOWEST_PRICE)))
             current_price = str(abs(get_comm_data(count, CURRENT_PRICE)))
 
-            price = ['t'+time, opening_price, highest_price, lowest_price, current_price]
+            time = transaction_time
+            price = [time + '_', opening_price, highest_price, lowest_price, current_price]
             data = ','.join(price)
-            print(data)
-            data_list.append(data)
-        data_list.reverse()
-        file_data = '\n'.join(data_list)
-        file.write(file_data)
-        file.close()
+            data_ex = data + '\n'
+
+            with open(saving_file_name, 'a') as saving_file:
+                saving_file.write(data_ex)
+
+            self.debug(data)
+            # self.signal(data)
 
         if sPrevNext == '2':
-            self.request_stock_price_min_proper(item_code, sPrevNext)
-            print(item_code, sPrevNext)
+            self.request_stock_price_tick(sPrevNext)
 
-    def get_code_list_by_market(self, market_code):
-        code_str = self.dynamic_call('GetCodeListByMarket', market_code)
-        code_list = code_str.split(';')
-        code_list.pop()
-        return code_list
+    def get_stock_price_min(self, sTrCode, sRQName, sPrevNext):
+        get_comm_data = self.new_get_comm_data(sTrCode, sRQName)
+        number_of_item = self.get_repeat_count(sTrCode, sRQName)
+        first_day = int(self.first_day.replace('-',''))
+        last_day = int(self.last_day.replace('-',''))
+
+        for count in range(number_of_item):
+            transaction_time = str(get_comm_data(count, TRANSACTION_TIME))
+            current_date = int(transaction_time[:8])
+            if current_date > last_day:
+                continue
+
+            if self.working_date != current_date:
+                if self.working_date != 0:
+                    header = 'Transaction time, opening, highest, lowest, current'
+                    self.stock_prices.append(header)
+                    self.stock_prices.reverse()
+                    file_data = '\n'.join(self.stock_prices)
+                    saving_file_name = self.save_folder + self.item_name + ' ' + str(self.working_date) + '.csv'
+                    if os.path.exists(saving_file_name):
+                        os.remove(saving_file_name)
+                    with open(saving_file_name, 'a') as saving_file:
+                        saving_file.write(file_data)
+                    self.stock_prices.clear()
+                    if current_date < first_day:
+                        self.init_screen_no(self.screen_no_stock_price)
+                        self.event_loop.exit()
+                        return
+                self.working_date = current_date
+
+            opening_price = str(abs(get_comm_data(count, OPENING_PRICE)))
+            highest_price = str(abs(get_comm_data(count, HIGHEST_PRICE)))
+            lowest_price = str(abs(get_comm_data(count, LOWEST_PRICE)))
+            current_price = str(abs(get_comm_data(count, CURRENT_PRICE)))
+
+            time = transaction_time[:-2]
+            # time = time[:4] + '-' + time[4:6] + '-' + time[6:8] + ' ' + time[8:10] + ':' + time[10:]
+
+            price = [time+'_', opening_price, highest_price, lowest_price, current_price]
+            data = ','.join(price)
+            self.debug(data)
+            self.stock_prices.append(data)
+
+        if sPrevNext == '2':
+            self.request_stock_price_min(sPrevNext)
 
     def init_screen_no(self, sScrNo):
         self.dynamic_call('DisconnectRealData', sScrNo)

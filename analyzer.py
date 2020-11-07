@@ -1,18 +1,19 @@
 from PyQt5.QtWidgets import QApplication, QMessageBox
 from analyzerbase import AnalyzerBase
-from kiwoom import Kiwoom
 import argparse
 import logging
 import sys, time
-from wookdata import *
 
 class Analyzer(AnalyzerBase):
     def __init__(self, log, key):
-        super().__init__(log)
-        self.kiwoom = Kiwoom(log, key)
+        super().__init__(log, key)
+
+        # Auto login
+        self.on_connect_kiwoom()
 
     def test(self):
         self.debug('test button clicked')
+
 
     def on_connect_kiwoom(self):
         login_status = self.kiwoom.connect(self.cb_auto_login.isChecked())
@@ -24,12 +25,17 @@ class Analyzer(AnalyzerBase):
         self.status_bar.showMessage('Log in success')
         self.cbb_account.addItems(self.kiwoom.account_list)
 
-    def on_select_account(self, account):
-        self.kiwoom.account_number = int(account)
-
     def get_stock_price(self):
-        # self.kiwoom.request_stock_price()
-        self.info('Data acquired and saved')
+        self.info('Getting stock price...')
+        if self.rb_tick.isChecked():
+            self.status_bar.showMessage('Getting stock prices (tick data)')
+            self.kiwoom.request_stock_price_tick()
+        elif self.rb_min.isChecked():
+            self.status_bar.showMessage('Getting stock prices (minute data)')
+            self.kiwoom.request_stock_price_min()
+        elif self.rb_day.isChecked():
+            self.status_bar.showMessage('Getting stock prices (day data)')
+            self.kiwoom.request_stock_price_day()
 
     def closeEvent(self, event):
         self.info('Closing process initializing...')
