@@ -1,6 +1,8 @@
 from Cryptodome import Random
 from Cryptodome.Cipher import AES
 from Cryptodome.Util import Padding, strxor
+from PyQt5.QtCore import QThread
+import time
 
 class WookCipher:
     def __init__(self, key=None):
@@ -97,27 +99,15 @@ class WookLog:
             logger(message, *args)
         return custom_logger
 
-    # def debug(self, message, *args):
-    #     message = str(message)
-    #     message += ' %s'*len(args)
-    #     self.log.debug(message, *args)
-    #
-    # def info(self, message, *args):
-    #     message = str(message)
-    #     message += ' %s'*len(args)
-    #     self.log.info(message, *args)
-    #
-    # def warning(self, message, *args):
-    #     message = str(message)
-    #     message += ' %s' * len(args)
-    #     self.log.warning(message, *args)
-    #
-    # def error(self, message, *args):
-    #     message = str(message)
-    #     message += ' %s' * len(args)
-    #     self.log.error(message, *args)
-    #
-    # def critical(self, message, *args):
-    #     message = str(message)
-    #     message += ' %s' * len(args)
-    #     self.log.critical(message, *args)
+class WookTimer(QThread):
+    def __init__(self, event_loop):
+        super().__init__()
+        self.time = 0
+        self.event_loop = event_loop
+
+    def sleep(self, time):
+        self.time = time
+
+    def run(self):
+        time.sleep(self.time)
+        self.event_loop.exit()

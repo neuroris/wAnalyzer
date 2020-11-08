@@ -1,8 +1,10 @@
 from PyQt5.QAxContainer import QAxWidget
+from PyQt5.QtCore import QThread
 from kiwoombase import KiwoomBase
 from wookauto import LoginPasswordThread, AccountPasswordThread
 from wookdata import *
 import time, os, re
+
 
 class Kiwoom(KiwoomBase):
     def __init__(self, log, key):
@@ -10,6 +12,9 @@ class Kiwoom(KiwoomBase):
 
         self.info('Kiwoom initializing...')
         self.connect_slots()
+
+        self.count = 0
+
 
         # self.request_stock_price()
 
@@ -62,7 +67,10 @@ class Kiwoom(KiwoomBase):
         self.set_input_value(TIC_RANGE, self.tick_type)
         self.set_input_value(CORRECTED_PRICE_TYPE, '1')
         self.comm_rq_data('stock price tick', REQUEST_TICK_PRICE, sPrevNext, self.screen_no_stock_price)
-        self.event_loop.exec()
+
+        if sPrevNext != '2':
+            self.event_loop.exec()
+
         self.working_date = 0
 
     def request_stock_price_min(self, sPrevNext='0'):
@@ -93,54 +101,6 @@ class Kiwoom(KiwoomBase):
 
     def on_receive_msg(self, sScrNo, sRQName, sTrCode, sMsg):
         print('Receiving message', sScrNo, sRQName, sTrCode, sMsg)
-
-    # def get_stock_price_tick(self, sTrCode, sRQName, sPrevNext):
-    #     get_comm_data = self.new_get_comm_data(sTrCode, sRQName)
-    #     number_of_item = self.get_repeat_count(sTrCode, sRQName)
-    #     first_day = int(self.first_day.replace('-',''))
-    #     last_day = int(self.last_day.replace('-',''))
-    #
-    #     for count in range(number_of_item):
-    #         transaction_time = str(get_comm_data(count, TRANSACTION_TIME))
-    #         current_date = int(transaction_time[:8])
-    #         if current_date > last_day:
-    #             continue
-    #
-    #         if self.working_date != current_date:
-    #             if self.working_date != 0:
-    #                 header = 'Transaction time, opening, highest, lowest, current'
-    #                 self.stock_prices.append(header)
-    #                 self.stock_prices.reverse()
-    #                 file_data = '\n'.join(self.stock_prices)
-    #                 saving_file_name = self.save_folder + self.item_name + ' ' + str(self.working_date) + '.csv'
-    #                 if os.path.exists(saving_file_name):
-    #                     os.remove(saving_file_name)
-    #                 with open(saving_file_name, 'a') as saving_file:
-    #                     saving_file.write(file_data)
-    #                 self.stock_prices.clear()
-    #                 if current_date < first_day:
-    #                     self.init_screen_no(self.screen_no_stock_price)
-    #                     self.event_loop.exit()
-    #                     return
-    #             self.working_date = current_date
-    #
-    #         opening_price = str(abs(get_comm_data(count, OPENING_PRICE)))
-    #         highest_price = str(abs(get_comm_data(count, HIGHEST_PRICE)))
-    #         lowest_price = str(abs(get_comm_data(count, LOWEST_PRICE)))
-    #         current_price = str(abs(get_comm_data(count, CURRENT_PRICE)))
-    #
-    #         # time = transaction_time[:-2]
-    #         time = transaction_time
-    #         # time = time[:4] + '-' + time[4:6] + '-' + time[6:8] + ' ' + time[8:10] + ':' + time[10:]
-    #
-    #         price = [time+'_', opening_price, highest_price, lowest_price, current_price]
-    #         data = ','.join(price)
-    #         self.debug(data)
-    #         self.stock_prices.append(data)
-    #
-    #     if sPrevNext == '2':
-    #         self.request_stock_price_tick(sPrevNext)
-
 
     def get_stock_price_tick(self, sTrCode, sRQName, sPrevNext):
         get_comm_data = self.new_get_comm_data(sTrCode, sRQName)

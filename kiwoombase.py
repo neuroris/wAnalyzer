@@ -1,10 +1,10 @@
 from PyQt5.QAxContainer import QAxWidget
-from PyQt5.QtCore import QEventLoop
+from PyQt5.QtCore import QEventLoop, QThread
 from PyQt5.QtTest import QTest
 from queue import Queue
 import time, os, re
 import pickle
-from wookutil import WookCipher, WookLog
+from wookutil import WookCipher, WookLog, WookTimer
 from wookdata import *
 
 class KiwoomBase(QAxWidget, WookLog):
@@ -21,6 +21,9 @@ class KiwoomBase(QAxWidget, WookLog):
 
         self.event_loop = QEventLoop()
         self.login_event_loop = QEventLoop()
+
+        self.timer_event_loop = QEventLoop()
+        self.timer = WookTimer(self.timer_event_loop)
 
         self.signal = None
         self.login_status = None
@@ -170,8 +173,7 @@ class KiwoomBase(QAxWidget, WookLog):
         time_interval = time.time() - self.previous_time
         if time_interval < self.consecutive_interval_limit:
             waiting_time = self.consecutive_interval_limit - time_interval
-            # time.sleep(waiting_time)
-            QTest.qSleep(waiting_time)
+            self.sleep(waiting_time)
 
         if self.reference_time.qsize() == self.request_block_size:
             reference_time = self.reference_time.get()
@@ -185,20 +187,23 @@ class KiwoomBase(QAxWidget, WookLog):
 
         if reference_time_interval < self.request_block_interval_limit:
             print('now waiting {}s... for request block interval'.format(self.request_block_waiting))
-            # time.sleep(self.request_block_waiting)
-            QTest.qSleep(self.request_block_waiting * 1000)
+            self.sleep(self.request_block_waiting)
 
         if self.request_count >= self.request_count_threshold:
             if (self.request_count - self.request_count_threshold) % self.request_count_interval == 0:
                 print('now waiting {}s... for request count over {}'.format(self.request_count_waiting,
                                                                             self.request_count))
-                # time.sleep(self.request_count_waiting)
-                QTest.qSleep(self.request_count_waiting * 1000)
+                self.sleep(self.request_count_waiting)
 
         self.request_count += 1
         current_time = time.time()
         self.previous_time = current_time
         self.reference_time.put(current_time)
+
+    def sleep(self, time):
+        self.timer.sleep(time)
+        self.timer.start()
+        self.timer_event_loop.exec()
 
     def process_type(self, data):
         data = data.strip()

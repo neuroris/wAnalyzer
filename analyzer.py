@@ -14,7 +14,6 @@ class Analyzer(AnalyzerBase):
     def test(self):
         self.debug('test button clicked')
 
-
     def on_connect_kiwoom(self):
         login_status = self.kiwoom.connect(self.cb_auto_login.isChecked())
         if login_status != 0:
