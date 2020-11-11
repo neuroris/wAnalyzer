@@ -27,13 +27,13 @@ class Analyzer(AnalyzerBase):
     def get_stock_price(self):
         self.info('Getting stock price...')
         if self.rb_tick.isChecked():
-            self.status_bar.showMessage('Getting stock prices (tick data)')
+            self.status_bar.showMessage('Getting stock prices (tick data)...')
             self.kiwoom.request_stock_price_tick()
         elif self.rb_min.isChecked():
-            self.status_bar.showMessage('Getting stock prices (minute data)')
+            self.status_bar.showMessage('Getting stock prices (minute data)...')
             self.kiwoom.request_stock_price_min()
         elif self.rb_day.isChecked():
-            self.status_bar.showMessage('Getting stock prices (day data)')
+            self.status_bar.showMessage('Getting stock prices (day data)...')
             self.kiwoom.request_stock_price_day()
 
     def closeEvent(self, event):

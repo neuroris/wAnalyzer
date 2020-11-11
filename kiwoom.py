@@ -70,16 +70,23 @@ class Kiwoom(KiwoomBase):
 
         if sPrevNext != '2':
             self.event_loop.exec()
-
-        self.working_date = 0
+            self.request_count = 0
+            self.working_date = 0
+            self.status('Getting stock price (tick) done')
+            self.info('Getting stock price (tick) done')
 
     def request_stock_price_min(self, sPrevNext='0'):
         self.set_input_value(ITEM_CODE, self.item_code)
         self.set_input_value(TIC_RANGE, self.min_type)
         self.set_input_value(CORRECTED_PRICE_TYPE, '1')
         self.comm_rq_data('stock price min', REQUEST_MINUTE_PRICE, sPrevNext, self.screen_no_stock_price)
-        self.event_loop.exec()
-        self.working_date = 0
+
+        if sPrevNext != '2':
+            self.event_loop.exec()
+            self.request_count = 0
+            self.working_date = 0
+            self.status('Getting stock price (min) done')
+            self.info('Getting stock price (min) done')
 
     def request_stock_price_day(self, sPrevNext='0'):
         pass
@@ -105,29 +112,53 @@ class Kiwoom(KiwoomBase):
     def get_stock_price_tick(self, sTrCode, sRQName, sPrevNext):
         get_comm_data = self.new_get_comm_data(sTrCode, sRQName)
         number_of_item = self.get_repeat_count(sTrCode, sRQName)
-        saving_file_name = self.save_folder + self.item_name + ' ' + str(self.working_date) + '.csv'
+        first_day = int(self.first_day.replace('-', ''))
+        last_day = int(self.last_day.replace('-', ''))
 
         for count in range(number_of_item):
             transaction_time = str(get_comm_data(count, TRANSACTION_TIME))
+            current_date = int(transaction_time[:8])
+            if current_date > last_day:
+                continue
+
+            # After getting whole day data, save as file
+            if self.working_date != current_date:
+                if self.working_date != 0:
+                    header = 'Transaction time, opening, highest, lowest, current, amount'
+                    self.stock_prices.append(header)
+                    self.stock_prices.reverse()
+                    file_data = '\n'.join(self.stock_prices)
+                    saving_file_name = self.save_folder + self.item_name + ' tick ' + str(self.working_date) + '.csv'
+                    with open(saving_file_name, 'w') as saving_file:
+                        saving_file.write(file_data)
+                    self.stock_prices.clear()
+                self.working_date = current_date
+
+            if current_date < first_day:
+                self.stock_prices.clear()
+                self.working_date = 0
+                self.init_screen_no(self.screen_no_stock_price)
+                self.event_loop.exit()
+                return
 
             opening_price = str(abs(get_comm_data(count, OPENING_PRICE)))
             highest_price = str(abs(get_comm_data(count, HIGHEST_PRICE)))
             lowest_price = str(abs(get_comm_data(count, LOWEST_PRICE)))
             current_price = str(abs(get_comm_data(count, CURRENT_PRICE)))
+            concluded_amount = str(abs(get_comm_data(count, TRANSACTION_AMOUNT)))
 
-            time = transaction_time
-            price = [time + '_', opening_price, highest_price, lowest_price, current_price]
-            data = ','.join(price)
-            data_ex = data + '\n'
+            time = transaction_time + '_'
+            data = [time, opening_price, highest_price, lowest_price, current_price, concluded_amount]
+            csv_data = ','.join(data)
+            self.stock_prices.append(csv_data)
 
-            with open(saving_file_name, 'a') as saving_file:
-                saving_file.write(data_ex)
-
-            self.debug(data)
-            # self.signal(data)
+            self.debug(csv_data)
 
         if sPrevNext == '2':
             self.request_stock_price_tick(sPrevNext)
+        else:
+            self.stock_prices.clear()
+            self.working_date = 0
 
     def get_stock_price_min(self, sTrCode, sRQName, sPrevNext):
         get_comm_data = self.new_get_comm_data(sTrCode, sRQName)
@@ -143,37 +174,43 @@ class Kiwoom(KiwoomBase):
 
             if self.working_date != current_date:
                 if self.working_date != 0:
-                    header = 'Transaction time, opening, highest, lowest, current'
+                    header = 'Transaction time, opening, highest, lowest, current, amount'
                     self.stock_prices.append(header)
                     self.stock_prices.reverse()
                     file_data = '\n'.join(self.stock_prices)
-                    saving_file_name = self.save_folder + self.item_name + ' ' + str(self.working_date) + '.csv'
-                    if os.path.exists(saving_file_name):
-                        os.remove(saving_file_name)
-                    with open(saving_file_name, 'a') as saving_file:
+                    saving_file_name = self.save_folder + self.item_name + ' min ' + str(self.working_date) + '.csv'
+                    with open(saving_file_name, 'w') as saving_file:
                         saving_file.write(file_data)
                     self.stock_prices.clear()
-                    if current_date < first_day:
-                        self.init_screen_no(self.screen_no_stock_price)
-                        self.event_loop.exit()
-                        return
                 self.working_date = current_date
+
+            if current_date < first_day:
+                self.stock_prices.clear()
+                self.working_date = 0
+                self.init_screen_no(self.screen_no_stock_price)
+                self.event_loop.exit()
+                return
 
             opening_price = str(abs(get_comm_data(count, OPENING_PRICE)))
             highest_price = str(abs(get_comm_data(count, HIGHEST_PRICE)))
             lowest_price = str(abs(get_comm_data(count, LOWEST_PRICE)))
             current_price = str(abs(get_comm_data(count, CURRENT_PRICE)))
+            transaction_amount = str(abs(get_comm_data(count, TRANSACTION_AMOUNT)))
 
-            time = transaction_time[:-2]
+            time = transaction_time[:-2] + '_'
             # time = time[:4] + '-' + time[4:6] + '-' + time[6:8] + ' ' + time[8:10] + ':' + time[10:]
 
-            price = [time+'_', opening_price, highest_price, lowest_price, current_price]
-            data = ','.join(price)
-            self.debug(data)
-            self.stock_prices.append(data)
+            data = [time+'_', opening_price, highest_price, lowest_price, current_price, transaction_amount]
+            csv_data = ','.join(data)
+            self.stock_prices.append(csv_data)
+
+            self.debug(csv_data)
 
         if sPrevNext == '2':
             self.request_stock_price_min(sPrevNext)
+        else:
+            self.stock_prices.clear()
+            self.working_date = 0
 
     def init_screen_no(self, sScrNo):
         self.dynamic_call('DisconnectRealData', sScrNo)

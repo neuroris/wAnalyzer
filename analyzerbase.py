@@ -17,11 +17,12 @@ class AnalyzerBase(QMainWindow, WookLog):
             self.setting = json.load(r_file)
 
         self.kiwoom = Kiwoom(log, key)
-        self.kiwoom.signal = self.on_kiwoom_signal
         self.initUI()
         self.initKiwoom()
 
     def initKiwoom(self):
+        self.kiwoom.signal = self.on_kiwoom_signal
+        self.kiwoom.status = self.on_kiwoom_status
         self.kiwoom.item_code = self.cbb_item_code.currentText()
         self.kiwoom.item_name = self.cbb_item_name.currentText()
         self.kiwoom.first_day = self.dte_first_day.text()
@@ -121,8 +122,8 @@ class AnalyzerBase(QMainWindow, WookLog):
         self.rb_day = QRadioButton('Day')
         self.cbb_tick = QComboBox()
         self.cbb_min = QComboBox()
-        # self.rb_min.setChecked(True)
-        self.rb_tick.setChecked(True)
+        self.rb_min.setChecked(True)
+        # self.rb_tick.setChecked(True)
 
         self.cbb_tick.addItem(TICK_1)
         self.cbb_tick.addItem(TICK_3)
@@ -210,6 +211,9 @@ class AnalyzerBase(QMainWindow, WookLog):
             message += str(arg) + ' '
 
         self.te_info.append(message)
+
+    def on_kiwoom_status(self, message):
+        self.status_bar.showMessage(message)
 
     def on_select_account(self, account):
         self.kiwoom.account_number = int(account)

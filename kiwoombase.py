@@ -26,6 +26,7 @@ class KiwoomBase(QAxWidget, WookLog):
         self.timer = WookTimer(self.timer_event_loop)
 
         self.signal = None
+        self.status = None
         self.login_status = None
 
         self.screen_no_account = '0010'
@@ -54,18 +55,16 @@ class KiwoomBase(QAxWidget, WookLog):
 
         self.stocks = list()
         self.portfolio_stocks = list()
-        # self.balance_stocks = list()
         self.interesting_stocks = list()
         self.unconcluded_stocks = list()
 
         self.previous_time = 0.0
         self.reference_time = Queue()
         self.consecutive_interval_limit = 0.25
-        self.request_block_interval_limit = 5
+        self.request_block_time_limit = 5
         self.request_block_size = 10
-        self.request_block_waiting = 0.5
         self.request_count = 0
-        self.request_count_threshold = 70
+        self.request_count_threshold = 90
         self.request_count_interval = 60
         self.request_count_waiting = 30
 
@@ -173,27 +172,27 @@ class KiwoomBase(QAxWidget, WookLog):
         time_interval = time.time() - self.previous_time
         if time_interval < self.consecutive_interval_limit:
             waiting_time = self.consecutive_interval_limit - time_interval
-            self.sleep(waiting_time)
+            time.sleep(waiting_time)
 
         if self.reference_time.qsize() == self.request_block_size:
             reference_time = self.reference_time.get()
         else:
             reference_time = 0
         reference_time_interval = time.time() - reference_time
-        # self.debug('Request count', self.request_count)
-        # self.debug('Reference time interval', reference_time_interval)
-        self.signal('Request count', self.request_count + 1)
-        self.signal('Reference time interval', reference_time_interval)
 
-        if reference_time_interval < self.request_block_interval_limit:
-            print('now waiting {}s... for request block interval'.format(self.request_block_waiting))
-            self.sleep(self.request_block_waiting)
+        if reference_time_interval < self.request_block_time_limit:
+            waiting_time = self.request_block_time_limit - reference_time_interval
+            print('now waiting {}s... for request block interval'.format(waiting_time))
+            time.sleep(waiting_time)
 
         if self.request_count >= self.request_count_threshold:
             if (self.request_count - self.request_count_threshold) % self.request_count_interval == 0:
                 print('now waiting {}s... for request count over {}'.format(self.request_count_waiting,
                                                                             self.request_count))
                 self.sleep(self.request_count_waiting)
+
+        self.signal('Request count', self.request_count + 1)
+        self.signal('Reference time interval', reference_time_interval)
 
         self.request_count += 1
         current_time = time.time()

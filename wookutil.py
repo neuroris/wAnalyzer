@@ -109,5 +109,7 @@ class WookTimer(QThread):
         self.time = time
 
     def run(self):
-        time.sleep(self.time)
+        for i in range(self.time):
+            print('\r{}s remaining '.format(self.time-i)+'='*(self.time-i), end='')
+            time.sleep(1)
         self.event_loop.exit()
