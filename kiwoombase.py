@@ -51,6 +51,7 @@ class KiwoomBase(QAxWidget, WookLog):
         self.working_date = 0
         self.tick_type = ''
         self.min_type = ''
+        self.day_type = ''
         self.stock_prices = list()
 
         self.stocks = list()
@@ -182,7 +183,7 @@ class KiwoomBase(QAxWidget, WookLog):
 
         if reference_time_interval < self.request_block_time_limit:
             waiting_time = self.request_block_time_limit - reference_time_interval
-            print('now waiting {}s... for request block interval'.format(waiting_time))
+            self.info('now waiting {}s... for request block interval'.format(waiting_time))
             time.sleep(waiting_time)
 
         if self.request_count >= self.request_count_threshold:

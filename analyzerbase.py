@@ -30,6 +30,7 @@ class AnalyzerBase(QMainWindow, WookLog):
         self.kiwoom.save_folder = self.le_save_folder.text()
         self.kiwoom.tick_type = self.cbb_tick.currentText()
         self.kiwoom.min_type = self.cbb_min.currentText()
+        self.kiwoom.day_type = self.cbb_day.currentText()
 
     def initUI(self):
         # Test Button
@@ -122,8 +123,10 @@ class AnalyzerBase(QMainWindow, WookLog):
         self.rb_day = QRadioButton('Day')
         self.cbb_tick = QComboBox()
         self.cbb_min = QComboBox()
-        self.rb_min.setChecked(True)
+        self.cbb_day = QComboBox()
+        # self.rb_min.setChecked(True)
         # self.rb_tick.setChecked(True)
+        self.rb_day.setChecked(True)
 
         self.cbb_tick.addItem(TICK_1)
         self.cbb_tick.addItem(TICK_3)
@@ -139,8 +142,14 @@ class AnalyzerBase(QMainWindow, WookLog):
         self.cbb_min.addItem(MIN_30)
         self.cbb_min.addItem(MIN_60)
 
-        self.cbb_tick.currentTextChanged.connect(self.on_change_tick)
-        self.cbb_min.currentTextChanged.connect(self.on_change_min)
+        self.cbb_day.addItem(DAY_DATA)
+        self.cbb_day.addItem(WEEK_DATA)
+        self.cbb_day.addItem(MONTH_DATA)
+        self.cbb_day.addItem(YEAR_DATA)
+
+        self.cbb_tick.activated.connect(self.on_change_tick)
+        self.cbb_min.activated.connect(self.on_change_min)
+        self.cbb_day.activated.connect(self.on_change_day)
 
         data_type_grid = QGridLayout()
         data_type_grid.addWidget(self.rb_tick, 0, 0)
@@ -148,6 +157,7 @@ class AnalyzerBase(QMainWindow, WookLog):
         data_type_grid.addWidget(self.rb_min, 1, 0)
         data_type_grid.addWidget(self.cbb_min, 1, 1)
         data_type_grid.addWidget(self.rb_day, 2, 0)
+        data_type_grid.addWidget(self.cbb_day, 2, 1)
 
         data_type_gbox = QGroupBox('Data Type')
         data_type_gbox.setLayout(data_type_grid)
@@ -256,10 +266,14 @@ class AnalyzerBase(QMainWindow, WookLog):
             self.le_save_folder.setText(folder)
             self.kiwoom.save_folder = folder
 
-    def on_change_tick(self, text):
+    def on_change_tick(self, index):
         self.rb_tick.setChecked(True)
-        self.kiwoom.tick_type = text
+        self.kiwoom.tick_type = self.cbb_tick.itemText(index)
 
-    def on_change_min(self, text):
+    def on_change_min(self, index):
         self.rb_min.setChecked(True)
-        self.kiwoom.min_type = text
+        self.kiwoom.min_type = self.cbb_min.itemText(index)
+
+    def on_change_day(self, index):
+        self.rb_day.setChecked(True)
+        self.kiwoom.day_type = self.cbb_day.itemText(index)

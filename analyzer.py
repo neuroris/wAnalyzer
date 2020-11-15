@@ -3,6 +3,7 @@ from analyzerbase import AnalyzerBase
 import argparse
 import logging
 import sys, time
+from wookdata import *
 
 class Analyzer(AnalyzerBase):
     def __init__(self, log, key):
@@ -35,6 +36,19 @@ class Analyzer(AnalyzerBase):
         elif self.rb_day.isChecked():
             self.status_bar.showMessage('Getting stock prices (day data)...')
             self.kiwoom.request_stock_price_day()
+
+            # if self.cbb_day.currentText() == DAY_DATA:
+            #     self.status_bar.showMessage('Getting stock prices (day data)...')
+            #     self.kiwoom.request_stock_price_day(REQUEST_DAY_PRICE)
+            # elif self.cbb_day.currentText() == WEEK_DATA:
+            #     self.status_bar.showMessage('Getting stock prices (week data)...')
+            #     self.kiwoom.request_stock_price_week(REQUEST_WEEK_PRICE)
+            # elif self.cbb_day.currentText() == MONTH_DATA:
+            #     self.status_bar.showMessage('Getting stock prices (month data)...')
+            #     self.kiwoom.request_stock_price_month(REQUEST_MONTH_PRICE)
+            # elif self.cbb_day.currentText() == YEAR_DATA:
+            #     self.status_bar.showMessage('Getting stock prices (year data)...')
+            #     self.kiwoom.request_stock_price_year(REQUEST_YEAR_PRICE)
 
     def closeEvent(self, event):
         self.info('Closing process initializing...')
