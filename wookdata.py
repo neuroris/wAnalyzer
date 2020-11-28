@@ -132,15 +132,15 @@ class TRADE_TYPE:
     CORRECT_BID = 5
     CORRECT_ASK = 6
 
-class ORDER_TYPE:
-    LIMIT = '00'
-    MARKET = '03'
-    CONDITIONAL = '05'
-    COVER = '06'
-    MARGINAL = '07'
-    BEFORE = '61'
-    CLOSING = '62'
-    AFTER = '81'
+# class ORDER_TYPE:
+#     LIMIT = '00'
+#     MARKET = '03'
+#     CONDITIONAL = '05'
+#     COVER = '06'
+#     MARGINAL = '07'
+#     BEFORE = '61'
+#     CLOSING = '62'
+#     AFTER = '81'
 
 CODE_KODEX_LEVERAGE = '122630'
 CODE_KODEX_INVERSE_2X = '252670'

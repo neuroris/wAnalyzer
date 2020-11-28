@@ -14,17 +14,6 @@ class Kiwoom(KiwoomBase):
         self.OnReceiveMsg.connect(self.on_receive_msg)
         self.OnReceiveConditionVer.connect(self.on_receive_condition_ver)
 
-    def connect(self, auto_login):
-        if auto_login:
-            self.auto_login()
-        else:
-            self.login()
-            self.set_account_password()
-        self.info('Logged in to Kiwoom server')
-        self.get_account_list()
-
-        return self.login_status
-
     def auto_login(self):
         self.dynamicCall('CommConnect()')
         self.login_event_loop.exec()
@@ -40,30 +29,32 @@ class Kiwoom(KiwoomBase):
         acc_psword_thread = AccountPasswordThread(self.event_loop, self.account_password)
         acc_psword_thread.start()
         self.event_loop.exec()
-
         # self.KOA_Functions('ShowAccountWindow', '')
 
     def get_account_list(self):
-        self.info('Getting account infomation...')
         account_list = self.dynamic_call('GetLoginInfo()', 'ACCLIST')
         self.account_list = account_list.split(';')
         self.account_list.pop()
-
-        for index, account in enumerate(self.account_list):
-            self.debug("Account {} : {}".format(index+1, account))
+        if self.account_list is None:
+            self.signal('Failed to get account information')
+        else:
+            self.signal('Account information acquired')
+            for index, account in enumerate(self.account_list):
+                self.debug("Account {} : {}".format(index + 1, account))
+        return self.account_list
 
     def request_stock_price_tick(self, sPrevNext='0'):
         self.set_input_value(ITEM_CODE, self.item_code)
         self.set_input_value(TICK_RANGE, self.tick_type)
         self.set_input_value(CORRECTED_PRICE_TYPE, '1')
-        self.comm_rq_data('stock price tick', REQUEST_TICK_PRICE, sPrevNext, self.screen_no_stock_price)
+        self.comm_rq_data('stock price tick', REQUEST_TICK_PRICE, sPrevNext, self.screen_stock_price)
         self.event_loop.exec()
 
     def request_stock_price_min(self, sPrevNext='0'):
         self.set_input_value(ITEM_CODE, self.item_code)
         self.set_input_value(TICK_RANGE, self.min_type)
         self.set_input_value(CORRECTED_PRICE_TYPE, '1')
-        self.comm_rq_data('stock price min', REQUEST_MINUTE_PRICE, sPrevNext, self.screen_no_stock_price)
+        self.comm_rq_data('stock price min', REQUEST_MINUTE_PRICE, sPrevNext, self.screen_stock_price)
         self.event_loop.exec()
 
     def request_stock_price_day(self, sPrevNext='0'):
@@ -72,7 +63,7 @@ class Kiwoom(KiwoomBase):
         self.set_input_value(REFERENCE_DATE, self.last_day.replace('-', ''))
         self.set_input_value(END_DATE, self.first_day.replace('-', ''))
         self.set_input_value(CORRECTED_PRICE_TYPE, '1')
-        self.comm_rq_data('stock price day', request, sPrevNext, self.screen_no_stock_price)
+        self.comm_rq_data('stock price day', request, sPrevNext, self.screen_stock_price)
         self.event_loop.exec()
 
     def finish_stock_price_request(self, type):
@@ -81,12 +72,16 @@ class Kiwoom(KiwoomBase):
         self.stock_prices.clear()
         self.status('Getting stock price ({}) done'.format(type[12:]))
         self.info('Getting stock price ({}) done'.format(type[12:]))
-        self.init_screen_no(self.screen_no_stock_price)
+        self.init_screen(self.screen_stock_price)
         self.event_loop.exit()
 
     def on_login(self, err_code):
-        self.login_status = err_code
-        self.info('Login status code :', err_code)
+        self.debug('Login status code :', err_code)
+        if err_code == 0:
+            self.signal('Kiwoom log in success')
+        else:
+            self.signal('Something is wrong during log-in')
+            self.error('Login error', err_code)
         self.login_event_loop.exit()
 
     def on_receive_tr_data(self, sScrNo, sRQName, sTrCode, sRecordName, sPrevNext):
@@ -98,7 +93,10 @@ class Kiwoom(KiwoomBase):
             self.get_stock_price_day(sTrCode, sRQName, sPrevNext)
 
     def on_receive_msg(self, sScrNo, sRQName, sTrCode, sMsg):
-        print('Receiving message', sScrNo, sRQName, sTrCode, sMsg)
+        self.inquiry_count += 1
+        time = datetime.now().strftime('%H:%M:%S')
+        self.status(sMsg, sRQName, time, '(' + str(self.inquiry_count) + ')')
+        self.debug('Received message:', sRQName, sMsg)
 
     def get_stock_price_tick(self, sTrCode, sRQName, sPrevNext):
         get_comm_data = self.new_get_comm_data(sTrCode, sRQName)
@@ -115,7 +113,7 @@ class Kiwoom(KiwoomBase):
             # After getting whole day data, save as file
             if self.working_date != current_date:
                 if self.working_date != 0:
-                    header = 'Transaction time, opening, highest, lowest, current, amount'
+                    header = 'Transaction time,opening,highest,lowest,current,amount'
                     self.stock_prices.append(header)
                     self.stock_prices.reverse()
                     file_data = '\n'.join(self.stock_prices)
@@ -161,7 +159,7 @@ class Kiwoom(KiwoomBase):
             # After getting whole day data, save as file
             if self.working_date != current_date:
                 if self.working_date != 0:
-                    header = 'Transaction time, opening, highest, lowest, current, amount'
+                    header = 'Transaction time,opening,highest,lowest,current,amount'
                     self.stock_prices.append(header)
                     self.stock_prices.reverse()
                     file_data = '\n'.join(self.stock_prices)
@@ -235,7 +233,7 @@ class Kiwoom(KiwoomBase):
 
     def save_stock_price_day(self, first_day):
         last_day = self.last_day.replace('-', '')
-        header = 'Transaction date, opening, highest, lowest, current, amount'
+        header = 'Transaction date,opening,highest,lowest,current,amount'
         self.stock_prices.append(header)
         self.stock_prices.reverse()
         file_data = '\n'.join(self.stock_prices)
@@ -244,14 +242,13 @@ class Kiwoom(KiwoomBase):
         with open(saving_file_name, 'w') as saving_file:
             saving_file.write(file_data)
 
-    def init_screen_no(self, sScrNo):
+    def init_screen(self, sScrNo):
         self.dynamic_call('DisconnectRealData', sScrNo)
+        self.debug('Screen disconnected', sScrNo)
 
     def on_receive_condition_ver(self, IRet, sMsg):
-        print(IRet, sMsg)
-        print('receive condition ver')
+        self.debug('receive condition ver', IRet, sMsg)
 
     def close_process(self):
-        pass
-        # self.save_intesting_stocks()
-        # self.dynamic_call('SetRealRemove', 'ALL', 'ALL')
+        self.dynamic_call('SetRealRemove', 'ALL', 'ALL')
+        self.signal('All screens are disconnected')

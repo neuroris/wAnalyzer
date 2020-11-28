@@ -4,13 +4,14 @@ from PyQt5.QtTest import QTest
 from queue import Queue
 import time, os, re
 import pickle
-from wookutil import WookCipher, WookLog, WookTimer
+from wookutil import WookCipher, WookLog, WookTimer, WookUtil
 from wookdata import *
 
-class KiwoomBase(QAxWidget, WookLog):
+class KiwoomBase(QAxWidget, WookLog, WookUtil):
     def __init__(self, log, key):
         super().__init__('KHOPENAPI.KHOpenAPICtrl.1')
         WookLog.custom_init(self, log)
+        WookUtil.__init__(self)
 
         wc = WookCipher(key)
         wc.decrypt_data()
@@ -21,28 +22,27 @@ class KiwoomBase(QAxWidget, WookLog):
 
         self.event_loop = QEventLoop()
         self.login_event_loop = QEventLoop()
-
         self.timer_event_loop = QEventLoop()
         self.timer = WookTimer(self.timer_event_loop)
 
         self.signal = None
         self.status = None
-        self.login_status = None
+        # self.login_status = None
 
-        self.screen_no_account = '0010'
-        self.screen_no_inconclusion = '0020'
-        self.screen_no_stock_price = '0030'
-        self.screen_no_operation_state = '0040'
-        self.screen_no_interesting_items = '0050'
-        self.screen_no_bid = '0060'
+        self.screen_account = '0010'
+        self.screen_inconclusion = '0020'
+        self.screen_stock_price = '0030'
+        self.screen_operation_state = '0040'
+        self.screen_interesting_items = '0050'
+        self.screen_bid = '0060'
 
         self.account_list = None
         self.account_number = 0
-        self.deposit = 0
-        self.withdrawable = 0
-        self.purchase_total_sum = 0
-        self.profit_evaluated_sum = 0
-        self.profit_rate_sum = 0
+        # self.deposit = 0
+        # self.withdrawable = 0
+        # self.purchase_total_sum = 0
+        # self.profit_evaluated_sum = 0
+        # self.profit_rate_sum = 0
         self.item_code = 0
         self.item_name = ''
         self.first_day = ''
@@ -54,11 +54,12 @@ class KiwoomBase(QAxWidget, WookLog):
         self.day_type = ''
         self.stock_prices = list()
 
-        self.stocks = list()
-        self.portfolio_stocks = list()
-        self.interesting_stocks = list()
-        self.unconcluded_stocks = list()
+        # self.stocks = list()
+        # self.portfolio_stocks = list()
+        # self.interesting_stocks = list()
+        # self.unconcluded_stocks = list()
 
+        self.inquiry_count = 0
         self.previous_time = 0.0
         self.reference_time = Queue()
         self.consecutive_interval_limit = 0.25
@@ -166,6 +167,10 @@ class KiwoomBase(QAxWidget, WookLog):
         processed_result = self.process_type(result)
         return processed_result
 
+    def get_item_name(self, item_code):
+        item_name = self.dynamic_call('GetMasterCodeName()', str(item_code))
+        return item_name
+
     def check_time_rule(self):
         # consecutive 28 request is blocked in 5 times a sec
         # consecutive 100 request is blocked in 4 times a sec
@@ -204,25 +209,3 @@ class KiwoomBase(QAxWidget, WookLog):
         self.timer.sleep(time)
         self.timer.start()
         self.timer_event_loop.exec()
-
-    def process_type(self, data):
-        data = data.strip()
-        int_criteria = re.compile('([+]{0,1}|[-]{0,1})\d+$')
-        if int_criteria.match(data):
-            return int(data)
-
-        float_criteria = re.compile('([+]{0,1}|[-]{0,1})\d+[.]\d+$')
-        if float_criteria.match(data):
-            return float(data)
-
-        return data
-
-    def formalize_int(self, str_data):
-        int_data = int(str_data)
-        formalized_data = format(int_data, ',')
-        return formalized_data
-
-    def formalize_float(self, str_data):
-        float_data = float(str_data)
-        formalized_data = format(float_data, ',')
-        return formalized_data

@@ -4,33 +4,17 @@ from PyQt5.QtWidgets import QMainWindow, QLabel, QPushButton, QLineEdit, \
 from PyQt5.QtCore import Qt, QDateTime
 from PyQt5.QtGui import QIcon
 import json
-from kiwoom import Kiwoom
-from wookutil import WookLog
+from wookutil import WookLog, WookUtil
 from wookdata import *
 
-class AnalyzerBase(QMainWindow, WookLog):
-    def __init__(self, log, key):
+class AnalyzerBase(QMainWindow, WookLog, WookUtil):
+    def __init__(self, log):
         super().__init__()
         WookLog.custom_init(self, log)
-
+        WookUtil.__init__(self)
         with open('setting.json') as r_file:
             self.setting = json.load(r_file)
-
-        self.kiwoom = Kiwoom(log, key)
         self.initUI()
-        self.initKiwoom()
-
-    def initKiwoom(self):
-        self.kiwoom.signal = self.on_kiwoom_signal
-        self.kiwoom.status = self.on_kiwoom_status
-        self.kiwoom.item_code = self.cbb_item_code.currentText()
-        self.kiwoom.item_name = self.cbb_item_name.currentText()
-        self.kiwoom.first_day = self.dte_first_day.text()
-        self.kiwoom.last_day = self.dte_last_day.text()
-        self.kiwoom.save_folder = self.le_save_folder.text()
-        self.kiwoom.tick_type = self.cbb_tick.currentText()
-        self.kiwoom.min_type = self.cbb_min.currentText()
-        self.kiwoom.day_type = self.cbb_day.currentText()
 
     def initUI(self):
         # Test Button
@@ -41,7 +25,7 @@ class AnalyzerBase(QMainWindow, WookLog):
         self.cb_auto_login = QCheckBox('Auto')
         self.cb_auto_login.setChecked(True)
         self.btn_login = QPushButton('Login', self)
-        self.btn_login.clicked.connect(self.on_connect_kiwoom)
+        self.btn_login.clicked.connect(self.connect_kiwoom)
         lb_account = QLabel('Account')
         self.cbb_account = QComboBox()
         self.cbb_account.currentTextChanged.connect(self.on_select_account)
@@ -85,7 +69,6 @@ class AnalyzerBase(QMainWindow, WookLog):
         self.dte_last_day.setDateTime(current_date)
         self.cb_one_day = QCheckBox('1-day')
         self.cb_one_day.setChecked(self.setting['one_day'])
-
         self.dte_first_day.dateChanged.connect(self.on_change_first_day)
         self.dte_last_day.dateChanged.connect(self.on_change_last_day)
 
@@ -124,9 +107,7 @@ class AnalyzerBase(QMainWindow, WookLog):
         self.cbb_tick = QComboBox()
         self.cbb_min = QComboBox()
         self.cbb_day = QComboBox()
-        # self.rb_min.setChecked(True)
-        # self.rb_tick.setChecked(True)
-        self.rb_day.setChecked(True)
+        self.rb_min.setChecked(True)
 
         self.cbb_tick.addItem(TICK_1)
         self.cbb_tick.addItem(TICK_3)
@@ -208,72 +189,6 @@ class AnalyzerBase(QMainWindow, WookLog):
         self.status_bar.showMessage('ready')
         self.setWindowTitle('wook\'s algorithm analyzer')
         self.resize(700, 600)
-        self.move(300, 150)
+        self.move(100, 100)
         self.setWindowIcon(QIcon('nyang1.ico'))
         self.show()
-
-    def edit_setting(self):
-        self.debug('setting')
-
-    def on_kiwoom_signal(self, *args):
-        message = ''
-        for arg in args:
-            message += str(arg) + ' '
-
-        self.te_info.append(message)
-
-    def on_kiwoom_status(self, message):
-        self.status_bar.showMessage(message)
-
-    def on_select_account(self, account):
-        self.kiwoom.account_number = int(account)
-
-    def on_select_item_code(self, code):
-        self.kiwoom.item_code = int(code)
-        if code == CODE_KODEX_LEVERAGE:
-            self.cbb_item_name.setCurrentText(NAME_KODEX_LEVERAGE)
-        elif code == CODE_KODEX_INVERSE_2X:
-            self.cbb_item_name.setCurrentText(NAME_KODEX_INVERSE_2X)
-        else:
-            self.cbb_item_name.setCurrentText('')
-
-    def on_select_item_name(self, name):
-        self.kiwoom.item_name = name
-        if name == NAME_KODEX_LEVERAGE:
-            self.cbb_item_code.setCurrentText(CODE_KODEX_LEVERAGE)
-        elif name == NAME_KODEX_INVERSE_2X:
-            self.cbb_item_code.setCurrentText(CODE_KODEX_INVERSE_2X)
-        else:
-            self.cbb_item_code.setCurrentText('')
-
-    def on_change_first_day(self, date):
-        self.kiwoom.first_day = date.toString('yyyy-MM-dd')
-        if self.cb_one_day.isChecked():
-            self.dte_last_day.setDate(date)
-
-    def on_change_last_day(self, date):
-        self.kiwoom.last_day = date.toString('yyyy-MM-dd')
-        if self.cb_one_day.isChecked():
-            self.dte_first_day.setDate(date)
-
-    def on_edit_save_folder(self):
-        folder = self.le_save_folder.text()
-        self.kiwoom.save_folder = folder
-
-    def on_change_save_folder(self):
-        folder = QFileDialog.getExistingDirectory(self, 'Select folder', self.le_save_folder.text())
-        if folder != '':
-            self.le_save_folder.setText(folder)
-            self.kiwoom.save_folder = folder
-
-    def on_change_tick(self, index):
-        self.rb_tick.setChecked(True)
-        self.kiwoom.tick_type = self.cbb_tick.itemText(index)
-
-    def on_change_min(self, index):
-        self.rb_min.setChecked(True)
-        self.kiwoom.min_type = self.cbb_min.itemText(index)
-
-    def on_change_day(self, index):
-        self.rb_day.setChecked(True)
-        self.kiwoom.day_type = self.cbb_day.itemText(index)
