@@ -52,24 +52,6 @@ class Analyzer(AnalyzerBase):
             self.status_bar.showMessage('Getting stock prices (day data)...')
             self.kiwoom.request_stock_price_day()
 
-    def edit_setting(self):
-        self.debug('setting')
-
-    def on_kiwoom_signal(self, *args):
-        message = str(args[0])
-        for arg in args[1:]:
-            message += ' ' + str(arg)
-
-        time = datetime.now().strftime('%H:%M:%S') + ' '
-        self.te_info.append(time + message)
-        self.info(message)
-
-    def on_kiwoom_status(self, *args):
-        message = str(args[0])
-        for arg in args[1:]:
-            message += ' ' + str(arg)
-        self.status_bar.showMessage(message)
-
     def on_select_account(self, account):
         self.kiwoom.account_number = int(account)
 
@@ -122,6 +104,24 @@ class Analyzer(AnalyzerBase):
     def on_change_day(self, index):
         self.rb_day.setChecked(True)
         self.kiwoom.day_type = self.cbb_day.itemText(index)
+
+    def edit_setting(self):
+        self.debug('setting')
+
+    def on_kiwoom_signal(self, *args):
+        message = str(args[0])
+        for arg in args[1:]:
+            message += ' ' + str(arg)
+
+        time = datetime.now().strftime('%H:%M:%S') + ' '
+        self.te_info.append(time + message)
+        self.info(message)
+
+    def on_kiwoom_status(self, *args):
+        message = str(args[0])
+        for arg in args[1:]:
+            message += ' ' + str(arg)
+        self.status_bar.showMessage(message)
 
     def closeEvent(self, event):
         self.kiwoom.signal('Closing process initializing...')
