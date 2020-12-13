@@ -150,6 +150,8 @@ class AnalyzerBase(QMainWindow, WookLog, WookUtil):
         go_grid = QGridLayout()
         go_grid.addWidget(self.btn_go, 0, 0, 3, 1)
 
+        #
+
         # TextEdit
         self.te_info = QTextEdit()
 

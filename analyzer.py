@@ -10,8 +10,8 @@ class Analyzer(AnalyzerBase):
         self.initKiwoom()
 
         # Initial work
-        self.connect_kiwoom()
-        self.get_account_list()
+        # self.connect_kiwoom()
+        # self.get_account_list()
 
     def test(self):
         self.debug('test button clicked')
