@@ -27,7 +27,6 @@ class KiwoomBase(QAxWidget, WookLog, WookUtil):
 
         self.signal = None
         self.status = None
-        # self.login_status = None
 
         self.screen_account = '0010'
         self.screen_inconclusion = '0020'
@@ -38,11 +37,6 @@ class KiwoomBase(QAxWidget, WookLog, WookUtil):
 
         self.account_list = None
         self.account_number = 0
-        # self.deposit = 0
-        # self.withdrawable = 0
-        # self.purchase_total_sum = 0
-        # self.profit_evaluated_sum = 0
-        # self.profit_rate_sum = 0
         self.item_code = 0
         self.item_name = ''
         self.first_day = ''
@@ -53,11 +47,6 @@ class KiwoomBase(QAxWidget, WookLog, WookUtil):
         self.min_type = ''
         self.day_type = ''
         self.stock_prices = list()
-
-        # self.stocks = list()
-        # self.portfolio_stocks = list()
-        # self.interesting_stocks = list()
-        # self.unconcluded_stocks = list()
 
         self.inquiry_count = 0
         self.previous_time = 0.0

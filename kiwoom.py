@@ -117,7 +117,7 @@ class Kiwoom(KiwoomBase):
                     self.stock_prices.append(header)
                     self.stock_prices.reverse()
                     file_data = '\n'.join(self.stock_prices)
-                    saving_file_name = self.save_folder + self.item_name + ' tick ' + str(self.working_date) + '.csv'
+                    saving_file_name = self.save_folder + '/' + self.item_name + ' tick ' + str(self.working_date) + '.csv'
                     with open(saving_file_name, 'w') as saving_file:
                         saving_file.write(file_data)
                         pass
@@ -163,7 +163,7 @@ class Kiwoom(KiwoomBase):
                     self.stock_prices.append(header)
                     self.stock_prices.reverse()
                     file_data = '\n'.join(self.stock_prices)
-                    saving_file_name = self.save_folder + self.item_name + ' min ' + str(self.working_date) + '.csv'
+                    saving_file_name = self.save_folder + '/' + self.item_name + ' min ' + str(self.working_date) + '.csv'
                     with open(saving_file_name, 'w') as saving_file:
                         saving_file.write(file_data)
                     self.stock_prices.clear()
@@ -238,7 +238,7 @@ class Kiwoom(KiwoomBase):
         self.stock_prices.reverse()
         file_data = '\n'.join(self.stock_prices)
         day = first_day + '-' + last_day
-        saving_file_name = self.save_folder + self.item_name + ' ' + self.day_type + ' ' + day + '.csv'
+        saving_file_name = self.save_folder + '/' + self.item_name + ' ' + self.day_type + ' ' + day + '.csv'
         with open(saving_file_name, 'w') as saving_file:
             saving_file.write(file_data)
 

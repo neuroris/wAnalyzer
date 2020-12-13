@@ -1,4 +1,6 @@
 {
-  "save_folder": "D:/Algorithm/stock price/",
-  "one_day": false
+  "save_folder": "D:/Algorithm/stock price",
+  "load_folder": "D:/Algorithm/leverage min",
+  "one_day": false,
+  "price_interval": "50"
 }

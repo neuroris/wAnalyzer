@@ -1,4 +1,10 @@
+from PyQt5.QtWidgets import QFileDialog
 from datetime import datetime
+import pandas as pd
+import matplotlib.pyplot as plt
+import mplfinance
+import math
+from glob import glob
 from analyzerbase import AnalyzerBase
 from kiwoom import Kiwoom
 from wookdata import *
@@ -12,6 +18,8 @@ class Analyzer(AnalyzerBase):
         # Initial work
         # self.connect_kiwoom()
         # self.get_account_list()
+
+        # self.get_graph()
 
     def test(self):
         self.debug('test button clicked')
@@ -51,6 +59,69 @@ class Analyzer(AnalyzerBase):
         elif self.rb_day.isChecked():
             self.status_bar.showMessage('Getting stock prices (day data)...')
             self.kiwoom.request_stock_price_day()
+
+    def get_floor(self, price, interval, loss_cut):
+        cut_value = interval - loss_cut
+        quotient, remainder = divmod(price - 1, interval)
+        fraction = remainder / cut_value
+        factor = int(fraction)
+        if factor:
+            factor = cut_value
+        processed_price = quotient * interval + factor
+
+        return processed_price
+
+    def get_ceiling(self, price, interval, loss_cut):
+        cut_value = interval - loss_cut
+        quotient, remainder = divmod(price, interval)
+        fraction = remainder / cut_value
+        factor = int(fraction)
+        if factor:
+            factor = loss_cut
+        processed_price = quotient * interval + cut_value + factor
+
+        return processed_price
+
+    def at_cut_price(price):
+        check_result = False
+        if price % 50:
+            check_result = True
+        return check_result
+
+    def get_graph(self):
+        interval = int(self.le_price_interval.text())
+        load_folder = self.le_load_folder.text()
+        all_files = glob(load_folder + '/' + '*.csv')
+        first_day = int(self.dte_first_day.text().replace('-', ''))
+        last_day = int(self.dte_last_day.text().replace('-', ''))
+        load_files = list()
+        if self.cb_load_all.isChecked():
+            load_files = all_files
+        else:
+            for file in all_files:
+                date = int(file[-12:-4])
+                if first_day <= date <= last_day:
+                    load_files.append(file)
+
+        mpl_color = mplfinance.make_marketcolors(up='tab:red', down='tab:blue', volume='Goldenrod')
+        mpl_style = mplfinance.make_mpf_style(base_mpl_style='seaborn', marketcolors=mpl_color)
+        # setup.update(dict(figscale=1.5, figratio=(1920, 1080), volume=True))
+
+        for file in load_files:
+            save_file = file[:-4] + '.png'
+            df = pd.read_csv(file, index_col=0, parse_dates=True)
+            max = df['High'].max()
+            min = df['Low'].min()
+            max_ceiling = math.ceil(max / interval) * interval
+            min_floor = math.floor(min / interval) * interval
+            yticks = list(range(min_floor, max_ceiling + interval, interval))
+            # setup = dict(type='candle', style=mpl_style, tight_layout=True, title=fig_title)
+            setup = dict(type='candle', style=mpl_style, tight_layout=True)
+            setup.update(dict(savefig=save_file, figscale=2, figratio=(1920, 1080), volume=True))
+            setup.update(dict(hlines=dict(hlines=yticks[:-1], linewidths=0.1, colors='silver', alpha=1)))
+            mplfinance.plot(df, **setup)
+            self.kiwoom.signal('Graph:', file)
+        self.kiwoom.signal('Getting graphs is done')
 
     def on_select_account(self, account):
         self.kiwoom.account_number = int(account)
@@ -104,6 +175,11 @@ class Analyzer(AnalyzerBase):
     def on_change_day(self, index):
         self.rb_day.setChecked(True)
         self.kiwoom.day_type = self.cbb_day.itemText(index)
+
+    def on_change_load_folder(self):
+        folder = QFileDialog.getExistingDirectory(self, 'Select folder', self.le_load_folder.text())
+        if folder != '':
+            self.le_load_folder.setText(folder)
 
     def edit_setting(self):
         self.debug('setting')

@@ -77,8 +77,8 @@ class AnalyzerBase(QMainWindow, WookLog, WookUtil):
         self.le_save_folder = QLineEdit()
         self.le_save_folder.setText(self.setting['save_folder'])
         self.le_save_folder.editingFinished.connect(self.on_edit_save_folder)
-        self.btn_change_folder = QPushButton('Change')
-        self.btn_change_folder.clicked.connect(self.on_change_save_folder)
+        self.btn_change_save_folder = QPushButton('Change')
+        self.btn_change_save_folder.clicked.connect(self.on_change_save_folder)
 
         # Item grid layout
         item_grid = QGridLayout()
@@ -95,7 +95,7 @@ class AnalyzerBase(QMainWindow, WookLog, WookUtil):
 
         item_grid.addWidget(lb_save_folder, 2, 0)
         item_grid.addWidget(self.le_save_folder, 2, 1, 1, 4)
-        item_grid.addWidget(self.btn_change_folder, 2, 5)
+        item_grid.addWidget(self.btn_change_save_folder, 2, 5)
 
         item_gbox = QGroupBox('Item information')
         item_gbox.setLayout(item_grid)
@@ -150,7 +150,31 @@ class AnalyzerBase(QMainWindow, WookLog, WookUtil):
         go_grid = QGridLayout()
         go_grid.addWidget(self.btn_go, 0, 0, 3, 1)
 
-        #
+        # Graph
+        self.cb_load_all = QCheckBox('All')
+        self.cb_load_all.setChecked(True)
+        lb_load_folder = QLabel('Load')
+        self.le_load_folder = QLineEdit()
+        self.le_load_folder.setText(self.setting['load_folder'])
+        lb_price_interval = QLabel('Interval')
+        self.le_price_interval = QLineEdit()
+        self.le_price_interval.setMaximumWidth(30)
+        self.le_price_interval.setText(self.setting['price_interval'])
+        self.btn_change_load_folder = QPushButton('Change')
+        self.btn_change_load_folder.clicked.connect(self.on_change_load_folder)
+        self.btn_get_graph = QPushButton('Get Charts')
+        self.btn_get_graph.clicked.connect(self.get_graph)
+
+        graph_grid = QGridLayout()
+        graph_grid.addWidget(lb_load_folder, 0, 0)
+        graph_grid.addWidget(self.cb_load_all, 0, 1)
+        graph_grid.addWidget(self.le_load_folder, 0, 2)
+        graph_grid.addWidget(self.btn_change_load_folder, 0, 3)
+        graph_grid.addWidget(lb_price_interval, 2, 0)
+        graph_grid.addWidget(self.le_price_interval, 2, 1)
+        graph_grid.addWidget(self.btn_get_graph, 2, 2, 1, 2)
+        graph_gbox = QGroupBox('Graph')
+        graph_gbox.setLayout(graph_grid)
 
         # TextEdit
         self.te_info = QTextEdit()
@@ -163,8 +187,13 @@ class AnalyzerBase(QMainWindow, WookLog, WookUtil):
         top_hbox.addLayout(go_grid)
         top_hbox.addStretch()
 
+        middle_hbox = QHBoxLayout()
+        middle_hbox.addWidget(graph_gbox)
+        middle_hbox.addStretch()
+
         vbox = QVBoxLayout()
         vbox.addLayout(top_hbox)
+        vbox.addLayout(middle_hbox)
         vbox.addWidget(self.te_info)
         vbox.addWidget(self.btn_test)
 
