@@ -21,7 +21,7 @@ class AnalyzerBase(QMainWindow, WookLog, WookUtil):
         self.btn_test = QPushButton('Test')
         self.btn_test.clicked.connect(self.test)
 
-        # Account information
+        ##### Account information
         self.cb_auto_login = QCheckBox('Auto')
         self.cb_auto_login.setChecked(True)
         self.btn_login = QPushButton('Login', self)
@@ -40,7 +40,7 @@ class AnalyzerBase(QMainWindow, WookLog, WookUtil):
         account_gbox = QGroupBox('Account Information')
         account_gbox.setLayout(account_grid)
 
-        # Item infomation
+        ##### Item infomation
         lb_item_code = QLabel('Code')
         lb_item_name = QLabel('Name')
         self.cbb_item_code = QComboBox()
@@ -100,7 +100,7 @@ class AnalyzerBase(QMainWindow, WookLog, WookUtil):
         item_gbox = QGroupBox('Item information')
         item_gbox.setLayout(item_grid)
 
-        # Data type selection
+        ##### Data type
         self.rb_tick = QRadioButton('Tick')
         self.rb_min = QRadioButton('Min')
         self.rb_day = QRadioButton('Day')
@@ -150,7 +150,7 @@ class AnalyzerBase(QMainWindow, WookLog, WookUtil):
         go_grid = QGridLayout()
         go_grid.addWidget(self.btn_go, 0, 0, 3, 1)
 
-        # Graph
+        ##### Analysis
         self.cb_load_all = QCheckBox('All')
         self.cb_load_all.setChecked(True)
         lb_load_folder = QLabel('Load')
@@ -176,6 +176,29 @@ class AnalyzerBase(QMainWindow, WookLog, WookUtil):
         graph_gbox = QGroupBox('Graph')
         graph_gbox.setLayout(graph_grid)
 
+        # Analyze
+        lb_analyze_interval = QLabel('Interval')
+        self.le_analyze_interval = QLineEdit()
+        self.le_analyze_interval.setMaximumWidth(30)
+        lb_analyze_loss_cut = QLabel('Loss cut')
+        self.le_analyze_loss_cut = QLineEdit()
+        self.le_analyze_loss_cut.setMaximumWidth(30)
+        self.btn_analyze = QPushButton('Analyze')
+        self.btn_analyze.setMaximumHeight(80)
+        self.btn_analyze.clicked.connect(self.analyze)
+
+        self.le_analyze_interval.setText('50')
+        self.le_analyze_loss_cut.setText('30')
+
+        analyze_grid = QGridLayout()
+        analyze_grid.addWidget(lb_analyze_interval, 0, 0)
+        analyze_grid.addWidget(self.le_analyze_interval, 0, 1)
+        analyze_grid.addWidget(lb_analyze_loss_cut, 1, 0)
+        analyze_grid.addWidget(self.le_analyze_loss_cut, 1, 1)
+        analyze_grid.addWidget(self.btn_analyze, 0, 2, 2, 2)
+        analyze_gbox = QGroupBox('Analysis')
+        analyze_gbox.setLayout(analyze_grid)
+
         # TextEdit
         self.te_info = QTextEdit()
 
@@ -189,6 +212,7 @@ class AnalyzerBase(QMainWindow, WookLog, WookUtil):
 
         middle_hbox = QHBoxLayout()
         middle_hbox.addWidget(graph_gbox)
+        middle_hbox.addWidget(analyze_gbox)
         middle_hbox.addStretch()
 
         vbox = QVBoxLayout()

@@ -24,6 +24,8 @@ class Analyzer(AnalyzerBase):
     def test(self):
         self.debug('test button clicked')
 
+
+
     def initKiwoom(self):
         self.kiwoom.signal = self.on_kiwoom_signal
         self.kiwoom.status = self.on_kiwoom_status
@@ -60,34 +62,6 @@ class Analyzer(AnalyzerBase):
             self.status_bar.showMessage('Getting stock prices (day data)...')
             self.kiwoom.request_stock_price_day()
 
-    def get_floor(self, price, interval, loss_cut):
-        cut_value = interval - loss_cut
-        quotient, remainder = divmod(price - 1, interval)
-        fraction = remainder / cut_value
-        factor = int(fraction)
-        if factor:
-            factor = cut_value
-        processed_price = quotient * interval + factor
-
-        return processed_price
-
-    def get_ceiling(self, price, interval, loss_cut):
-        cut_value = interval - loss_cut
-        quotient, remainder = divmod(price, interval)
-        fraction = remainder / cut_value
-        factor = int(fraction)
-        if factor:
-            factor = loss_cut
-        processed_price = quotient * interval + cut_value + factor
-
-        return processed_price
-
-    def at_cut_price(price):
-        check_result = False
-        if price % 50:
-            check_result = True
-        return check_result
-
     def get_graph(self):
         interval = int(self.le_price_interval.text())
         load_folder = self.le_load_folder.text()
@@ -122,6 +96,101 @@ class Analyzer(AnalyzerBase):
             mplfinance.plot(df, **setup)
             self.kiwoom.signal('Graph:', file)
         self.kiwoom.signal('Getting graphs is done')
+
+    def get_floor(self, price, interval, loss_cut):
+        cut_value = interval - loss_cut
+        quotient, remainder = divmod(price - 1, interval)
+        fraction = remainder / cut_value
+        factor = int(fraction)
+        if factor:
+            factor = cut_value
+        processed_price = quotient * interval + factor
+
+        return processed_price
+
+    def get_ceiling(self, price, interval, loss_cut):
+        cut_value = interval - loss_cut
+        quotient, remainder = divmod(price, interval)
+        fraction = remainder / cut_value
+        factor = int(fraction)
+        if factor:
+            factor = loss_cut
+        processed_price = quotient * interval + cut_value + factor
+
+        return processed_price
+
+    def custom_get_floor(self, interval, loss_cut):
+        def new_get_floor(price):
+            result = self.get_floor(price, interval, loss_cut)
+            return result
+        return new_get_floor
+
+    def custom_get_ceiling(self, interval, loss_cut):
+        def new_get_ceiling(price):
+            result = self.get_ceiling(price, interval, loss_cut)
+            return result
+        return new_get_ceiling
+
+    def at_cut_price(self, price):
+        check_result = False
+        if price % 50:
+            check_result = True
+        return check_result
+
+    def get_succinct_prices(self, file_name, interval, loss_cut):
+        df = pd.read_csv(file_name)
+        initial_price = df.loc[0, 'Open']
+        high_price = df['High']
+        low_price = df['Low']
+        open_price = df['Open']
+        close_price = df['Close']
+
+        prices = list()
+        prices.append(initial_price)
+
+        get_floor = self.custom_get_floor(interval, loss_cut)
+        get_ceiling = self.custom_get_ceiling(interval, loss_cut)
+        for index in df.index:
+            low_floor = get_floor(low_price[index])
+            high_ceiling = get_ceiling(high_price[index])
+
+            if open_price[index] < close_price[index]:
+                while low_floor != get_floor(high_ceiling):
+                    low_floor = get_ceiling(low_floor)
+                    if prices[-1] != low_floor:
+                        if not ((prices[-1] == get_floor(low_floor)) and self.at_cut_price(low_floor)):
+                            prices.append(low_floor)
+            else:
+                while low_floor != get_floor(high_ceiling):
+                    high_ceiling = get_floor(high_ceiling - 1)
+                    if prices[-1] != high_ceiling:
+                        if not ((prices[-1] == get_floor(high_ceiling)) and self.at_cut_price(high_ceiling)):
+                            prices.append(high_ceiling)
+
+        processed_prices = list()
+        processed_prices.append(initial_price)
+        for index, price in enumerate(prices[1:-1]):
+            if self.at_cut_price(price):
+                ceiling_criteria = price + loss_cut
+                floor_criteria = price - (interval - loss_cut)
+                p1 = prices[index]
+                p2 = prices[index+2]
+                if not ((prices[index] == ceiling_criteria) and (prices[index+2] == floor_criteria)):
+                    processed_prices.append(price)
+            else:
+                processed_prices.append(price)
+        processed_prices.append(prices[-1])
+
+        return processed_prices
+
+    def analyze(self):
+        file_name = './test.csv'
+        interval = int(self.le_analyze_interval.text())
+        loss_cut = int(self.le_analyze_loss_cut.text())
+        prices = self.get_succinct_prices(file_name, interval, loss_cut)
+
+        # self.debug(prices)
+
 
     def on_select_account(self, account):
         self.kiwoom.account_number = int(account)
