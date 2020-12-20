@@ -1,3 +1,5 @@
+from PyQt5.QtWidgets import QTableWidgetItem
+from PyQt5.QtCore import Qt
 from Cryptodome import Random
 from Cryptodome.Cipher import AES
 from Cryptodome.Util import Padding, strxor
@@ -151,13 +153,6 @@ class WookUtil:
         formalized_data = format(processed_data, ',')
         return formalized_data
 
-    def to_item_time(self, data):
-        data = str(data)
-        time_format = data[:2] + ':' + data[2:4] + ':' + data[4:]
-        table_item = self.to_item(time_format)
-        table_item.setTextAlignment(Qt.AlignCenter)
-        return table_item
-
     def to_item(self, data):
         if type(data) != str:
             item_data = self.formalize(data)
@@ -170,4 +165,32 @@ class WookUtil:
                 table_item.setForeground(Qt.red)
         else:
             table_item = QTableWidgetItem(data)
+            if data:
+                if (data[0] == '-') or (data[0] == '+'):
+                    table_item.setText(data[1:])
+        return table_item
+
+    def to_item_plain(self, data):
+        item_data = str(data)
+        table_item = QTableWidgetItem(item_data)
+        table_item.setTextAlignment((Qt.AlignRight | Qt.AlignVCenter))
+        return table_item
+
+    def to_item_time(self, data):
+        data = str(data)
+        time_format = data[:2] + ':' + data[2:4] + ':' + data[4:]
+        table_item = self.to_item(time_format)
+        table_item.setTextAlignment(Qt.AlignCenter)
+        return table_item
+
+    def to_item_sign(self, data):
+        item_data = data
+        if type(data) != str:
+            item_data = self.formalize(data)
+        table_item = QTableWidgetItem(item_data)
+        table_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        if item_data[0] == '-':
+            table_item.setForeground(Qt.blue)
+        else:
+            table_item.setForeground(Qt.red)
         return table_item

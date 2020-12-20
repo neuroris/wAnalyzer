@@ -25,7 +25,7 @@ class KiwoomBase(QAxWidget, WookLog, WookUtil):
         self.timer_event_loop = QEventLoop()
         self.timer = WookTimer(self.timer_event_loop)
 
-        self.signal = None
+        self.log = None
         self.status = None
 
         self.screen_account = '0010'
@@ -160,6 +160,13 @@ class KiwoomBase(QAxWidget, WookLog, WookUtil):
         item_name = self.dynamic_call('GetMasterCodeName()', str(item_code))
         return item_name
 
+    def get_item_code(self, item_name):
+        item_code = ''
+        for key, value in CODES.items():
+            if item_name == value:
+                item_code = key
+        return item_code
+
     def check_time_rule(self):
         # consecutive 28 request is blocked in 5 times a sec
         # consecutive 100 request is blocked in 4 times a sec
@@ -186,8 +193,8 @@ class KiwoomBase(QAxWidget, WookLog, WookUtil):
                                                                             self.request_count))
                 self.sleep(self.request_count_waiting)
 
-        self.signal('Request count', self.request_count + 1)
-        self.signal('Reference time interval', reference_time_interval)
+        self.log('Request count', self.request_count + 1)
+        self.log('Reference time interval', reference_time_interval)
 
         self.request_count += 1
         current_time = time.time()

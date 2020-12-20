@@ -1,4 +1,5 @@
 from PyQt5.QtWidgets import QFileDialog
+from PyQt5.QtCore import Qt
 from datetime import datetime
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -15,19 +16,19 @@ class Analyzer(AnalyzerBase):
         super().__init__(log)
         self.initKiwoom()
 
-        # Initial work
-        # self.connect_kiwoom()
-        # self.get_account_list()
+        # Analyzer fields
+        self.winning_number = 0
+        self.analysis_count = 0
+        self.total_profit = 0
+        self.total_profit_with_fee = 0.0
 
-        # self.get_graph()
+        # self.connect_kiwoom()
 
     def test(self):
         self.debug('test button clicked')
 
-
-
     def initKiwoom(self):
-        self.kiwoom.signal = self.on_kiwoom_signal
+        self.kiwoom.log = self.on_kiwoom_log
         self.kiwoom.status = self.on_kiwoom_status
         self.kiwoom.item_code = self.cbb_item_code.currentText()
         self.kiwoom.item_name = self.cbb_item_name.currentText()
@@ -44,6 +45,8 @@ class Analyzer(AnalyzerBase):
         else:
             self.kiwoom.login()
             self.kiwoom.set_account_password()
+
+        self.get_account_list()
 
     def get_account_list(self):
         account_list = self.kiwoom.get_account_list()
@@ -62,14 +65,14 @@ class Analyzer(AnalyzerBase):
             self.status_bar.showMessage('Getting stock prices (day data)...')
             self.kiwoom.request_stock_price_day()
 
-    def get_graph(self):
-        interval = int(self.le_price_interval.text())
-        load_folder = self.le_load_folder.text()
+    def get_chart(self):
+        interval = int(self.le_interval.text())
+        load_folder = self.le_analysis_folder.text()
         all_files = glob(load_folder + '/' + '*.csv')
         first_day = int(self.dte_first_day.text().replace('-', ''))
         last_day = int(self.dte_last_day.text().replace('-', ''))
         load_files = list()
-        if self.cb_load_all.isChecked():
+        if self.cb_analyze_all.isChecked():
             load_files = all_files
         else:
             for file in all_files:
@@ -94,8 +97,8 @@ class Analyzer(AnalyzerBase):
             setup.update(dict(savefig=save_file, figscale=2, figratio=(1920, 1080), volume=True))
             setup.update(dict(hlines=dict(hlines=yticks[:-1], linewidths=0.1, colors='silver', alpha=1)))
             mplfinance.plot(df, **setup)
-            self.kiwoom.signal('Graph:', file)
-        self.kiwoom.signal('Getting graphs is done')
+            self.kiwoom.log('Chart converting', file)
+        self.kiwoom.log('Getting charts has been done')
 
     def get_floor(self, price, interval, loss_cut):
         cut_value = interval - loss_cut
@@ -137,7 +140,7 @@ class Analyzer(AnalyzerBase):
             check_result = True
         return check_result
 
-    def get_succinct_prices(self, file_name, interval, loss_cut):
+    def get_essential_prices(self, file_name, interval, loss_cut):
         df = pd.read_csv(file_name)
         initial_price = df.loc[0, 'Open']
         high_price = df['High']
@@ -173,8 +176,6 @@ class Analyzer(AnalyzerBase):
             if self.at_cut_price(price):
                 ceiling_criteria = price + loss_cut
                 floor_criteria = price - (interval - loss_cut)
-                p1 = prices[index]
-                p2 = prices[index+2]
                 if not ((prices[index] == ceiling_criteria) and (prices[index+2] == floor_criteria)):
                     processed_prices.append(price)
             else:
@@ -183,35 +184,116 @@ class Analyzer(AnalyzerBase):
 
         return processed_prices
 
+    def get_report(self, file_name, interval, loss_cut, fee_ratio):
+        earning = 0
+        loss = 0
+        trading_period = file_name[-12:-4]
+        prices = self.get_essential_prices(file_name, interval, loss_cut)
+        previous_price = prices[0]
+        for index, price in enumerate(prices[1:-1]):
+            next_price = prices[index + 2]
+            if price == previous_price - interval:
+                if price + interval == next_price:
+                    earning += 1
+                else:
+                    loss += 1
+            previous_price = price
+
+        profit = earning * interval - loss * loss_cut
+        profit_rate = round(profit / previous_price * 100, 2)
+        transaction_number = earning + loss
+        fee = round(transaction_number * previous_price * fee_ratio / 100, 2)
+        net_profit = round(profit - fee, 2)
+        net_profit_rate = round(net_profit / previous_price * 100, 2)
+        self.total_profit += profit
+        self.total_profit_with_fee += net_profit
+        self.analysis_count += 1
+        if profit > 0:
+            self.winning_number += 1
+        report = [trading_period, earning, loss, profit, profit_rate]
+        report += [fee, net_profit, net_profit_rate]
+
+        self.debug(report)
+        return report
+
     def analyze(self):
-        file_name = './test.csv'
-        interval = int(self.le_analyze_interval.text())
-        loss_cut = int(self.le_analyze_loss_cut.text())
-        prices = self.get_succinct_prices(file_name, interval, loss_cut)
+        self.analysis_count = 0
+        self.winning_number = 0
+        self.total_profit = 0
+        self.total_profit_with_fee = 0
 
-        # self.debug(prices)
+        analysis_folder = self.le_analysis_folder.text()
 
+        interval = int(self.le_interval.text())
+        loss_cut = int(self.le_loss_cut.text())
+        fee = float(self.le_fee.text())
+        files = glob(analysis_folder + '/' + '*.csv')
+        target_files = list()
+        if self.cb_analyze_all.isChecked():
+            target_files = files
+        else:
+            first_day = int(self.dte_first_day.text().replace('-',''))
+            last_day = int(self.dte_last_day.text().replace('-', ''))
+            for file in files:
+                date = int(file[-12:-4])
+                if first_day <= date <= last_day:
+                    target_files.append(file)
+
+        report = list()
+        for file in target_files:
+            individual_report = self.get_report(file, interval, loss_cut, fee)
+            report.append(individual_report)
+
+        winning_ratio = round(self.winning_number / self.analysis_count, 2)
+
+        report_title = '===== Report : interval({}), loss-cut({}), fee({}) ====='
+        report_summary = report_title.format(str(interval), str(loss_cut), str(fee))
+        self.display_report(report)
+        self.post(report_summary)
+        self.post('Winning ratio', self.winning_number, '/', self.analysis_count, '=', winning_ratio)
+        self.post('Total profit', self.formalize(self.total_profit))
+        self.post('Total profit (Fee)', self.formalize(int(self.total_profit_with_fee)))
+        self.post('')
+        self.info('Total profit', self.total_profit)
+        self.info('Total profit (Fee)', self.formalize(int(self.total_profit_with_fee)))
+
+    def display_report(self, reports):
+        self.clear_table(self.table_report)
+        for row, report in enumerate(reports):
+            self.table_report.insertRow(row)
+            self.table_report.setRowHeight(row, 6)
+            self.table_report.setItem(row, 0, self.to_item(report[0]))
+            self.table_report.setItem(row, 1, self.to_item_plain(report[1]))
+            self.table_report.setItem(row, 2, self.to_item_plain(report[2]))
+            self.table_report.setItem(row, 3, self.to_item_sign(report[3]))
+            self.table_report.setItem(row, 4, self.to_item_sign(report[4]))
+            self.table_report.setItem(row, 5, self.to_item_plain(report[5]))
+            self.table_report.setItem(row, 6, self.to_item_sign(report[6]))
+            self.table_report.setItem(row, 7, self.to_item_sign(report[7]))
+        # self.table_report.sortItems(0, Qt.DescendingOrder)
+
+    def clear_table(self, table):
+        for row in range(table.rowCount()):
+            table.removeRow(0)
 
     def on_select_account(self, account):
         self.kiwoom.account_number = int(account)
 
-    def on_select_item_code(self, code):
-        self.kiwoom.item_code = int(code)
-        if code == CODE_KODEX_LEVERAGE:
-            self.cbb_item_name.setCurrentText(NAME_KODEX_LEVERAGE)
-        elif code == CODE_KODEX_INVERSE_2X:
-            self.cbb_item_name.setCurrentText(NAME_KODEX_INVERSE_2X)
-        else:
-            self.cbb_item_name.setCurrentText('')
+    def on_select_item_code(self, item_code):
+        item_name = CODES.get(item_code)
+        if item_name is None:
+            item_name = self.kiwoom.get_item_name(item_code)
+            if item_name != '':
+                CODES[item_code] = item_name
+                self.cbb_item_code.addItem(item_code)
+                self.cbb_item_name.addItem(item_name)
+
+        self.cbb_item_name.setCurrentText(item_name)
 
     def on_select_item_name(self, name):
-        self.kiwoom.item_name = name
-        if name == NAME_KODEX_LEVERAGE:
-            self.cbb_item_code.setCurrentText(CODE_KODEX_LEVERAGE)
-        elif name == NAME_KODEX_INVERSE_2X:
-            self.cbb_item_code.setCurrentText(CODE_KODEX_INVERSE_2X)
-        else:
-            self.cbb_item_code.setCurrentText('')
+        item_name = self.cbb_item_name.currentText()
+        item_code = self.kiwoom.get_item_code(item_name)
+        self.cbb_item_code.setCurrentText(item_code)
 
     def on_change_first_day(self, date):
         self.kiwoom.first_day = date.toString('yyyy-MM-dd')
@@ -245,19 +327,24 @@ class Analyzer(AnalyzerBase):
         self.rb_day.setChecked(True)
         self.kiwoom.day_type = self.cbb_day.itemText(index)
 
-    def on_change_load_folder(self):
-        folder = QFileDialog.getExistingDirectory(self, 'Select folder', self.le_load_folder.text())
+    def on_change_analysis_folder(self):
+        folder = QFileDialog.getExistingDirectory(self, 'Select folder', self.analysis_folder.text())
         if folder != '':
-            self.le_load_folder.setText(folder)
+            self.analysis_folder.setText(folder)
 
     def edit_setting(self):
         self.debug('setting')
 
-    def on_kiwoom_signal(self, *args):
+    def post(self, *args):
         message = str(args[0])
         for arg in args[1:]:
             message += ' ' + str(arg)
+        self.te_info.append(message)
 
+    def on_kiwoom_log(self, *args):
+        message = str(args[0])
+        for arg in args[1:]:
+            message += ' ' + str(arg)
         time = datetime.now().strftime('%H:%M:%S') + ' '
         self.te_info.append(time + message)
         self.info(message)
@@ -269,7 +356,7 @@ class Analyzer(AnalyzerBase):
         self.status_bar.showMessage(message)
 
     def closeEvent(self, event):
-        self.kiwoom.signal('Closing process initializing...')
+        self.kiwoom.log('Closing process initializing...')
         self.kiwoom.close_process()
         self.kiwoom.clear()
         self.kiwoom.deleteLater()

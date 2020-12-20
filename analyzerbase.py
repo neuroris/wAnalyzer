@@ -1,6 +1,7 @@
 from PyQt5.QtWidgets import QMainWindow, QLabel, QPushButton, QLineEdit, \
     QTextEdit, QVBoxLayout, QHBoxLayout, QWidget, QRadioButton, QGridLayout, \
-    QCheckBox, QComboBox, QGroupBox, QDateTimeEdit, QAction, QFileDialog
+    QCheckBox, QComboBox, QGroupBox, QDateTimeEdit, QAction, QFileDialog, \
+    QTableWidgetItem, QTableWidget
 from PyQt5.QtCore import Qt, QDateTime
 from PyQt5.QtGui import QIcon
 import json
@@ -47,12 +48,10 @@ class AnalyzerBase(QMainWindow, WookLog, WookUtil):
         self.cbb_item_name = QComboBox()
         self.cbb_item_code.setEditable(True)
         self.cbb_item_name.setEditable(True)
-        self.cbb_item_code.currentTextChanged.connect(self.on_select_item_code)
-        self.cbb_item_name.currentTextChanged.connect(self.on_select_item_name)
-        self.cbb_item_code.addItem(CODE_KODEX_LEVERAGE)
-        self.cbb_item_code.addItem(CODE_KODEX_INVERSE_2X)
-        self.cbb_item_name.addItem(NAME_KODEX_LEVERAGE)
-        self.cbb_item_name.addItem(NAME_KODEX_INVERSE_2X)
+        self.cbb_item_code.editTextChanged.connect(self.on_select_item_code)
+        self.cbb_item_name.currentIndexChanged.connect(self.on_select_item_name)
+        self.cbb_item_code.addItems(CODES)
+        self.cbb_item_name.addItems(CODES.values())
 
         # Period
         current_date = QDateTime.currentDateTime()
@@ -143,61 +142,74 @@ class AnalyzerBase(QMainWindow, WookLog, WookUtil):
         data_type_gbox = QGroupBox('Data Type')
         data_type_gbox.setLayout(data_type_grid)
 
-        # Go button
+        ##### Go button
         self.btn_go = QPushButton('&Go')
         self.btn_go.clicked.connect(self.get_stock_price)
-        self.btn_go.setMaximumHeight(100)
+        # self.btn_go.setMaximumHeight(100)
+        self.btn_go.setMinimumSize(80, 100)
         go_grid = QGridLayout()
         go_grid.addWidget(self.btn_go, 0, 0, 3, 1)
 
         ##### Analysis
-        self.cb_load_all = QCheckBox('All')
-        self.cb_load_all.setChecked(True)
-        lb_load_folder = QLabel('Load')
-        self.le_load_folder = QLineEdit()
-        self.le_load_folder.setText(self.setting['load_folder'])
-        lb_price_interval = QLabel('Interval')
-        self.le_price_interval = QLineEdit()
-        self.le_price_interval.setMaximumWidth(30)
-        self.le_price_interval.setText(self.setting['price_interval'])
-        self.btn_change_load_folder = QPushButton('Change')
-        self.btn_change_load_folder.clicked.connect(self.on_change_load_folder)
-        self.btn_get_graph = QPushButton('Get Charts')
-        self.btn_get_graph.clicked.connect(self.get_graph)
+        lb_analysis_folder = QLabel('Target')
+        self.le_analysis_folder = QLineEdit()
+        self.le_analysis_folder.setText(self.setting['analysis_folder'])
+        self.btn_change_analysis_folder = QPushButton('Change')
+        self.btn_change_analysis_folder.clicked.connect(self.on_change_analysis_folder)
+        self.cb_analyze_all = QCheckBox('Apply all')
+        self.cb_analyze_all.setChecked(True)
+        self.le_interval = QLineEdit()
+        lb_interval = QLabel('Interval')
+        self.le_interval.setMaximumWidth(30)
+        self.le_interval.setText('50')
+        lb_loss_cut = QLabel('Loss cut')
+        self.le_loss_cut = QLineEdit()
+        self.le_loss_cut.setMaximumWidth(30)
+        self.le_loss_cut.setText('30')
+        lb_fee = QLabel('Fee(%)')
+        self.le_fee = QLineEdit()
+        self.le_fee.setMaximumWidth(40)
+        self.le_fee.setText('0.03')
+        self.btn_get_chart = QPushButton('Chart')
+        self.btn_get_chart.clicked.connect(self.get_chart)
 
-        graph_grid = QGridLayout()
-        graph_grid.addWidget(lb_load_folder, 0, 0)
-        graph_grid.addWidget(self.cb_load_all, 0, 1)
-        graph_grid.addWidget(self.le_load_folder, 0, 2)
-        graph_grid.addWidget(self.btn_change_load_folder, 0, 3)
-        graph_grid.addWidget(lb_price_interval, 2, 0)
-        graph_grid.addWidget(self.le_price_interval, 2, 1)
-        graph_grid.addWidget(self.btn_get_graph, 2, 2, 1, 2)
-        graph_gbox = QGroupBox('Graph')
-        graph_gbox.setLayout(graph_grid)
+        analysis_grid = QGridLayout()
+        analysis_grid.addWidget(lb_analysis_folder, 0, 0)
+        analysis_grid.addWidget(self.le_analysis_folder, 0, 1, 1, 5)
+        analysis_grid.addWidget(self.btn_change_analysis_folder, 0, 6)
+        analysis_grid.addWidget(self.cb_analyze_all, 0, 7)
+        analysis_grid.addWidget(lb_interval, 2, 0)
+        analysis_grid.addWidget(self.le_interval, 2, 1)
+        analysis_grid.addWidget(lb_loss_cut, 2, 2)
+        analysis_grid.addWidget(self.le_loss_cut, 2, 3)
+        analysis_grid.addWidget(lb_fee, 2, 4)
+        analysis_grid.addWidget(self.le_fee, 2, 5)
+        analysis_grid.addWidget(self.btn_get_chart, 2, 6)
 
-        # Analyze
-        lb_analyze_interval = QLabel('Interval')
-        self.le_analyze_interval = QLineEdit()
-        self.le_analyze_interval.setMaximumWidth(30)
-        lb_analyze_loss_cut = QLabel('Loss cut')
-        self.le_analyze_loss_cut = QLineEdit()
-        self.le_analyze_loss_cut.setMaximumWidth(30)
+        analysis_gbox = QGroupBox('Analysis')
+        analysis_gbox.setLayout(analysis_grid)
+
+        # Analyze Button
         self.btn_analyze = QPushButton('Analyze')
-        self.btn_analyze.setMaximumHeight(80)
+        self.btn_analyze.setMinimumSize(300, 80)
         self.btn_analyze.clicked.connect(self.analyze)
+        analysis_btn_grid = QGridLayout()
+        analysis_btn_grid.addWidget(self.btn_analyze, 0, 0, 2, 4)
 
-        self.le_analyze_interval.setText('50')
-        self.le_analyze_loss_cut.setText('30')
+        ##### Analysis Report
+        report_header = ['Time', 'Earning', 'Loss', 'Profit', 'Rate']
+        report_header += ['Fee', 'Net Profit', 'Net Rate']
+        self.table_report = QTableWidget(0, 8)
+        self.table_report.setHorizontalHeaderLabels(report_header)
+        for column in range(1, self.table_report.columnCount()):
+            self.table_report.setColumnWidth(column, 70)
+        self.table_report.setColumnWidth(0, 100)
 
-        analyze_grid = QGridLayout()
-        analyze_grid.addWidget(lb_analyze_interval, 0, 0)
-        analyze_grid.addWidget(self.le_analyze_interval, 0, 1)
-        analyze_grid.addWidget(lb_analyze_loss_cut, 1, 0)
-        analyze_grid.addWidget(self.le_analyze_loss_cut, 1, 1)
-        analyze_grid.addWidget(self.btn_analyze, 0, 2, 2, 2)
-        analyze_gbox = QGroupBox('Analysis')
-        analyze_gbox.setLayout(analyze_grid)
+        report_gbox = QGroupBox('Analysis Report')
+        report_gbox.setMinimumHeight(400)
+        report_grid = QGridLayout()
+        report_grid.addWidget(self.table_report)
+        report_gbox.setLayout(report_grid)
 
         # TextEdit
         self.te_info = QTextEdit()
@@ -211,13 +223,14 @@ class AnalyzerBase(QMainWindow, WookLog, WookUtil):
         top_hbox.addStretch()
 
         middle_hbox = QHBoxLayout()
-        middle_hbox.addWidget(graph_gbox)
-        middle_hbox.addWidget(analyze_gbox)
+        middle_hbox.addWidget(analysis_gbox)
+        middle_hbox.addLayout(analysis_btn_grid)
         middle_hbox.addStretch()
 
         vbox = QVBoxLayout()
         vbox.addLayout(top_hbox)
         vbox.addLayout(middle_hbox)
+        vbox.addWidget(report_gbox)
         vbox.addWidget(self.te_info)
         vbox.addWidget(self.btn_test)
 
@@ -243,7 +256,7 @@ class AnalyzerBase(QMainWindow, WookLog, WookUtil):
         self.status_bar = self.statusBar()
         self.status_bar.showMessage('ready')
         self.setWindowTitle('wook\'s algorithm analyzer')
-        self.resize(700, 600)
+        self.resize(700, 800)
         self.move(100, 100)
         self.setWindowIcon(QIcon('nyang1.ico'))
         self.show()

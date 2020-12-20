@@ -36,11 +36,9 @@ class Kiwoom(KiwoomBase):
         self.account_list = account_list.split(';')
         self.account_list.pop()
         if self.account_list is None:
-            self.signal('Failed to get account information')
+            self.log('Failed to get account information')
         else:
-            self.signal('Account information acquired')
-            for index, account in enumerate(self.account_list):
-                self.debug("Account {} : {}".format(index + 1, account))
+            self.log('Account information')
         return self.account_list
 
     def request_stock_price_tick(self, sPrevNext='0'):
@@ -78,9 +76,9 @@ class Kiwoom(KiwoomBase):
     def on_login(self, err_code):
         self.debug('Login status code :', err_code)
         if err_code == 0:
-            self.signal('Kiwoom log in success')
+            self.log('Kiwoom log in success')
         else:
-            self.signal('Something is wrong during log-in')
+            self.log('Something is wrong during log-in')
             self.error('Login error', err_code)
         self.login_event_loop.exit()
 
@@ -244,11 +242,11 @@ class Kiwoom(KiwoomBase):
 
     def init_screen(self, sScrNo):
         self.dynamic_call('DisconnectRealData', sScrNo)
-        self.debug('Screen disconnected', sScrNo)
+        # self.debug('Screen reset', sScrNo)
 
     def on_receive_condition_ver(self, IRet, sMsg):
         self.debug('receive condition ver', IRet, sMsg)
 
     def close_process(self):
         self.dynamic_call('SetRealRemove', 'ALL', 'ALL')
-        self.signal('All screens are disconnected')
+        self.log('All screens are disconnected')
