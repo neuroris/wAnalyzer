@@ -29,11 +29,12 @@ class KiwoomBase(QAxWidget, WookLog, WookUtil):
         self.status = None
 
         self.screen_account = '0010'
-        self.screen_inconclusion = '0020'
+        # self.screen_inconclusion = '0020'
         self.screen_stock_price = '0030'
+        self.screen_future_stock_price = '0100'
         self.screen_operation_state = '0040'
-        self.screen_interesting_items = '0050'
-        self.screen_bid = '0060'
+        # self.screen_interesting_items = '0050'
+        # self.screen_bid = '0060'
 
         self.account_list = None
         self.account_number = 0

@@ -5,14 +5,15 @@ from PyQt5.QtWidgets import QMainWindow, QLabel, QPushButton, QLineEdit, \
 from PyQt5.QtCore import Qt, QDateTime
 from PyQt5.QtGui import QIcon
 import json
-from wookutil import WookLog, WookUtil
+from wookutil import WookLog, WookUtil, WookMath
 from wookdata import *
 
-class AnalyzerBase(QMainWindow, WookLog, WookUtil):
+class AnalyzerBase(QMainWindow, WookLog, WookUtil, WookMath):
     def __init__(self, log):
         super().__init__()
         WookLog.custom_init(self, log)
         WookUtil.__init__(self)
+        WookMath.__init__(self)
         with open('setting.json') as r_file:
             self.setting = json.load(r_file)
         self.initUI()
@@ -68,6 +69,8 @@ class AnalyzerBase(QMainWindow, WookLog, WookUtil):
         self.dte_last_day.setDateTime(current_date)
         self.cb_one_day = QCheckBox('1-day')
         self.cb_one_day.setChecked(self.setting['one_day'])
+        self.cb_all_days = QCheckBox('All')
+        self.cb_all_days.setChecked(True)
         self.dte_first_day.dateChanged.connect(self.on_change_first_day)
         self.dte_last_day.dateChanged.connect(self.on_change_last_day)
 
@@ -84,18 +87,16 @@ class AnalyzerBase(QMainWindow, WookLog, WookUtil):
         item_grid.addWidget(lb_item_code, 0, 0)
         item_grid.addWidget(self.cbb_item_code, 0, 1)
         item_grid.addWidget(lb_item_name, 0, 2, 1, 2)
-        item_grid.addWidget(self.cbb_item_name, 0, 4, 1, 2)
-
+        item_grid.addWidget(self.cbb_item_name, 0, 4, 1, 3)
         item_grid.addWidget(lb_period, 1, 0)
         item_grid.addWidget(self.dte_first_day, 1, 1, 1, 2)
         item_grid.addWidget(lb_wave, 1, 3, Qt.AlignCenter)
         item_grid.addWidget(self.dte_last_day, 1, 4, 1, 1)
         item_grid.addWidget(self.cb_one_day, 1, 5)
-
+        item_grid.addWidget(self.cb_all_days, 1, 6)
         item_grid.addWidget(lb_save_folder, 2, 0)
         item_grid.addWidget(self.le_save_folder, 2, 1, 1, 4)
-        item_grid.addWidget(self.btn_change_save_folder, 2, 5)
-
+        item_grid.addWidget(self.btn_change_save_folder, 2, 5, 1, 2)
         item_gbox = QGroupBox('Item information')
         item_gbox.setLayout(item_grid)
 
@@ -107,26 +108,12 @@ class AnalyzerBase(QMainWindow, WookLog, WookUtil):
         self.cbb_min = QComboBox()
         self.cbb_day = QComboBox()
         self.rb_min.setChecked(True)
-
-        self.cbb_tick.addItem(TICK_1)
-        self.cbb_tick.addItem(TICK_3)
-        self.cbb_tick.addItem(TICK_5)
-        self.cbb_tick.addItem(TICK_10)
-        self.cbb_tick.addItem(TICK_30)
-
-        self.cbb_min.addItem(MIN_1)
-        self.cbb_min.addItem(MIN_3)
-        self.cbb_min.addItem(MIN_5)
-        self.cbb_min.addItem(MIN_10)
-        self.cbb_min.addItem(MIN_15)
-        self.cbb_min.addItem(MIN_30)
-        self.cbb_min.addItem(MIN_60)
-
+        self.cbb_tick.addItems(TICK)
+        self.cbb_min.addItems(MIN)
         self.cbb_day.addItem(DAY_DATA)
         self.cbb_day.addItem(WEEK_DATA)
         self.cbb_day.addItem(MONTH_DATA)
         self.cbb_day.addItem(YEAR_DATA)
-
         self.cbb_tick.activated.connect(self.on_change_tick)
         self.cbb_min.activated.connect(self.on_change_min)
         self.cbb_day.activated.connect(self.on_change_day)
@@ -138,7 +125,6 @@ class AnalyzerBase(QMainWindow, WookLog, WookUtil):
         data_type_grid.addWidget(self.cbb_min, 1, 1)
         data_type_grid.addWidget(self.rb_day, 2, 0)
         data_type_grid.addWidget(self.cbb_day, 2, 1)
-
         data_type_gbox = QGroupBox('Data Type')
         data_type_gbox.setLayout(data_type_grid)
 
@@ -156,8 +142,6 @@ class AnalyzerBase(QMainWindow, WookLog, WookUtil):
         self.le_analysis_folder.setText(self.setting['analysis_folder'])
         self.btn_change_analysis_folder = QPushButton('Change')
         self.btn_change_analysis_folder.clicked.connect(self.on_change_analysis_folder)
-        self.cb_analyze_all = QCheckBox('Apply all')
-        self.cb_analyze_all.setChecked(True)
         self.le_interval = QLineEdit()
         lb_interval = QLabel('Interval')
         self.le_interval.setMaximumWidth(30)
@@ -170,40 +154,76 @@ class AnalyzerBase(QMainWindow, WookLog, WookUtil):
         self.le_fee = QLineEdit()
         self.le_fee.setMaximumWidth(40)
         self.le_fee.setText('0.03')
-        self.btn_get_chart = QPushButton('Chart')
-        self.btn_get_chart.clicked.connect(self.get_chart)
 
         analysis_grid = QGridLayout()
         analysis_grid.addWidget(lb_analysis_folder, 0, 0)
         analysis_grid.addWidget(self.le_analysis_folder, 0, 1, 1, 5)
         analysis_grid.addWidget(self.btn_change_analysis_folder, 0, 6)
-        analysis_grid.addWidget(self.cb_analyze_all, 0, 7)
         analysis_grid.addWidget(lb_interval, 2, 0)
         analysis_grid.addWidget(self.le_interval, 2, 1)
         analysis_grid.addWidget(lb_loss_cut, 2, 2)
         analysis_grid.addWidget(self.le_loss_cut, 2, 3)
         analysis_grid.addWidget(lb_fee, 2, 4)
         analysis_grid.addWidget(self.le_fee, 2, 5)
-        analysis_grid.addWidget(self.btn_get_chart, 2, 6)
-
         analysis_gbox = QGroupBox('Analysis')
         analysis_gbox.setLayout(analysis_grid)
 
-        # Analyze Button
+        ##### Chart
+        self.lb_analysis_item = QLabel('No item')
+        self.lb_analysis_item.setStyleSheet('color:DarkGreen')
+        self.lb_analysis_item.setMaximumWidth(110)
+        self.lb_analysis_first_day = QLabel(self.dte_first_day.text())
+        self.lb_analysis_first_day.setStyleSheet('color:Indigo')
+        lb_chart_wave = QLabel('~')
+        self.lb_analysis_last_day = QLabel(self.dte_last_day.text())
+        self.lb_analysis_last_day.setStyleSheet('color:Indigo')
+        self.rb_save_chart = QRadioButton('Save')
+        self.rb_save_chart.clicked.connect(self.on_select_save_chart)
+        self.rb_show_chart = QRadioButton('Show')
+        self.rb_show_chart.clicked.connect(self.on_select_show_chart)
+        self.rb_show_chart.setChecked(True)
+        self.btn_candle_chart = QPushButton('Candle')
+        self.btn_candle_chart.clicked.connect(self.save_as_candle_chart)
+        self.btn_candle_chart.setEnabled(False)
+        self.btn_simplified_chart = QPushButton('Simplified')
+        self.btn_simplified_chart.clicked.connect(self.show_simplified_chart)
+        self.btn_simplified_chart.setEnabled(False)
+
+        chart_hbox = QHBoxLayout()
+        chart_hbox.addWidget(self.lb_analysis_first_day)
+        chart_hbox.addWidget(lb_chart_wave)
+        chart_hbox.addWidget(self.lb_analysis_last_day)
+        chart_hbox.addStretch()
+
+        chart_grid = QGridLayout()
+        chart_grid.addWidget(self.lb_analysis_item, 0, 0, 1, 2)
+        chart_grid.addLayout(chart_hbox, 0, 2, 1, 2)
+        chart_grid.addWidget(self.rb_show_chart, 1, 0)
+        chart_grid.addWidget(self.rb_save_chart, 1, 1)
+        chart_grid.addWidget(self.btn_candle_chart, 1, 2)
+        chart_grid.addWidget(self.btn_simplified_chart, 1, 3)
+        chart_gbox = QGroupBox('Chart')
+        chart_gbox.setLayout(chart_grid)
+
+        ##### Analyze Button
         self.btn_analyze = QPushButton('Analyze')
-        self.btn_analyze.setMinimumSize(300, 80)
+        self.btn_analyze.setMinimumSize(110, 75)
         self.btn_analyze.clicked.connect(self.analyze)
         analysis_btn_grid = QGridLayout()
-        analysis_btn_grid.addWidget(self.btn_analyze, 0, 0, 2, 4)
+        analysis_btn_grid.addWidget(self.btn_analyze, 0, 0)
 
         ##### Analysis Report
-        report_header = ['Time', 'Earning', 'Loss', 'Profit', 'Rate']
+        report_header = ['Item', 'Time', 'Earning', 'Loss', 'Profit', 'Rate']
         report_header += ['Fee', 'Net Profit', 'Net Rate']
-        self.table_report = QTableWidget(0, 8)
+        self.table_report = QTableWidget(0, 9)
+        self.table_report.cellClicked.connect(self.on_select_table_report)
         self.table_report.setHorizontalHeaderLabels(report_header)
         for column in range(1, self.table_report.columnCount()):
             self.table_report.setColumnWidth(column, 70)
-        self.table_report.setColumnWidth(0, 100)
+        self.table_report.setColumnWidth(0, 145)
+        self.table_report.setColumnWidth(1, 75)
+        self.table_report.setColumnWidth(2, 50)
+        self.table_report.setColumnWidth(3, 50)
 
         report_gbox = QGroupBox('Analysis Report')
         report_gbox.setMinimumHeight(400)
@@ -224,6 +244,7 @@ class AnalyzerBase(QMainWindow, WookLog, WookUtil):
 
         middle_hbox = QHBoxLayout()
         middle_hbox.addWidget(analysis_gbox)
+        middle_hbox.addWidget(chart_gbox)
         middle_hbox.addLayout(analysis_btn_grid)
         middle_hbox.addStretch()
 

@@ -116,6 +116,50 @@ class WookTimer(QThread):
             time.sleep(1)
         self.event_loop.exit()
 
+class WookMath:
+    def __init__(self):
+        pass
+
+    def get_floor(self, price, interval, loss_cut):
+        cut_value = interval - loss_cut
+        quotient, remainder = divmod(price - 1, interval)
+        fraction = remainder / cut_value
+        factor = int(fraction)
+        if factor:
+            factor = cut_value
+        processed_price = quotient * interval + factor
+
+        return processed_price
+
+    def get_ceiling(self, price, interval, loss_cut):
+        cut_value = interval - loss_cut
+        quotient, remainder = divmod(price, interval)
+        fraction = remainder / cut_value
+        factor = int(fraction)
+        if factor:
+            factor = loss_cut
+        processed_price = quotient * interval + cut_value + factor
+
+        return processed_price
+
+    def custom_get_floor(self, interval, loss_cut):
+        def new_get_floor(price):
+            result = self.get_floor(price, interval, loss_cut)
+            return result
+        return new_get_floor
+
+    def custom_get_ceiling(self, interval, loss_cut):
+        def new_get_ceiling(price):
+            result = self.get_ceiling(price, interval, loss_cut)
+            return result
+        return new_get_ceiling
+
+    def at_cut_price(self, price, interval):
+        check_result = False
+        if price % interval:
+            check_result = True
+        return check_result
+
 class WookUtil:
     def __init__(self):
         pass

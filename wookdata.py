@@ -29,23 +29,28 @@ HIGH_PRICE = '고가'
 LOW_PRICE = '저가'
 VOLUME = '거래량'
 TICK_RANGE = '틱범위'
-TICK_1 = '1:1틱'
-TICK_3 = '3:3틱'
-TICK_5 = '5:5틱'
-TICK_10 = '10:10틱'
-TICK_30 = '30:30틱'
-MIN_1 = '1:1분'
-MIN_3 = '3:3분'
-MIN_5 = '5:5분'
-MIN_10 = '10:10분'
-MIN_15 = '15:15분'
-MIN_30 = '30:30분'
-MIN_45 = '45:45분'
-MIN_60 = '60:60분'
+# TICK_1 = '1:1틱'
+# TICK_3 = '3:3틱'
+# TICK_5 = '5:5틱'
+# TICK_10 = '10:10틱'
+# TICK_30 = '30:30틱'
+# MIN_1 = '1:1분'
+# MIN_3 = '3:3분'
+# MIN_5 = '5:5분'
+# MIN_10 = '10:10분'
+# MIN_15 = '15:15분'
+# MIN_30 = '30:30분'
+# MIN_45 = '45:45분'
+# MIN_60 = '60:60분'
 DAY_DATA = '일'
 WEEK_DATA = '주'
 MONTH_DATA = '월'
 YEAR_DATA = '년'
+TIME_UNIT = '시간단위'
+MIN = ['1:1분', '3:3분', '5:5분', '10:10분', '15:15분', '30:30분', '45:45분', '60:60분']
+TICK = ['1:1틱', '3:3틱', '5:5틱', '10:10틱', '30:30틱']
+# MIN_FUTURES = ['1분:1', '3분:3', '5분:5', '10분:10', '15분:15', '30분:30', '60분:60', '120분:120']
+FUTURES_CODE = '101'
 
 # Korean parameters with subfields
 TRADE_POSITION = '매매구분'
@@ -96,6 +101,8 @@ REQUEST_DAY_PRICE = 'opt10081'
 REQUEST_WEEK_PRICE = 'opt10082'
 REQUEST_MONTH_PRICE = 'opt10083'
 REQUEST_YEAR_PRICE = 'opt10094'
+REQUEST_FUTURE_TICK = 'opt50028'
+REQUEST_FUTURE_MIN = 'OPT50029'
 
 # Real types
 REAL_TYPE_STOCK_TRADED = '주식체결'
@@ -142,6 +149,24 @@ EXECUTED_ORDER_PRICE = '체결가'
 EXECUTED_ORDER_AMOUNT = '체결량'
 TRANSACTION_FEE_TODAY = '당일매매수수료'
 TAX_TODAY = '당일매매세금'
+
+# 선물틱차트요청
+CURRENT_PRICE = '현재가'
+VOLUME = '거래량'
+TRANSACTION_TIME = '체결시간'
+OPEN_PRICE = '시가'
+HIGH_PRICE = '고가'
+LOW_PRICE = '저가'
+LAST_DAY_CLOSE_PRICE = '전일종가'
+
+# 선물옵션분차트요청
+CURRENT_PRICE = '현재가'
+VOLUME = '거래량'
+TRANSACTION_TIME = '체결시간'
+OPEN_PRICE = '시가'
+HIGH_PRICE = '고가'
+LOW_PRICE = '저가'
+LAST_DAY_CLOSE_PRICE = '전일종가'
 
 class FID:
     # 주식체결
@@ -218,5 +243,6 @@ MARKET_ETF = '8'
 CODES = {
     '122630': 'KODEX 레버리지',
     '252670': 'KODEX 200선물인버스2X',
-    '048260': '오스템임플란트'
+    '048260': '오스템임플란트',
+    '101R3000': 'F 202103'
 }
