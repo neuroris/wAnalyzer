@@ -1,10 +1,12 @@
 from PyQt5.QtWidgets import QTableWidgetItem
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QThread
 from Cryptodome import Random
 from Cryptodome.Cipher import AES
 from Cryptodome.Util import Padding, strxor
-from PyQt5.QtCore import QThread
-import time, re
+import pandas
+import matplotlib.pyplot as plt
+import mplfinance
+import time, re, math
 
 class WookCipher:
     def __init__(self, key=None):

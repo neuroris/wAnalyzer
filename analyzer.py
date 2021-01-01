@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QFileDialog, QTableWidgetSelectionRange
-from PyQt5.QtCore import Qt, QDate
+from PyQt5.QtCore import Qt, QDate, QModelIndex
 from datetime import datetime
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -8,17 +8,21 @@ import math, os
 from glob import glob
 from analyzerbase import AnalyzerBase
 from kiwoom import Kiwoom
-from wookreport import WookAnalysis, DayAnalysis
+from wookreport import WookAnalysis, DayAnalysis, WookChart
 from wookdata import *
 
 class Analyzer(AnalyzerBase):
     def __init__(self, log, key):
         self.kiwoom = Kiwoom(log, key)
         super().__init__(log)
+        self.wook_analysis = WookAnalysis()
+        self.wook_chart = WookChart(log)
         self.initKiwoom()
 
-        self.connect_kiwoom()
-        self.wook_analysis = WookAnalysis()
+        self.te_info.append('===== Welcome to wAnalyzer =====')
+        # self.connect_kiwoom()
+
+        self.dte_first_day.setDate(QDate.fromString('20201201', 'yyyyMMdd'))
 
         # self.cbb_item_name.setCurrentIndex(3)
         # self.cbb_item_code.setCurrentText('101R3000')
@@ -94,10 +98,10 @@ class Analyzer(AnalyzerBase):
         if self.cb_all_days.isChecked():
             target_files = files
         else:
-            first_day = int(self.dte_first_day.date().toString('yyyyMMdd'))
-            last_day = int(self.dte_last_day.date().toString('yyyyMMdd'))
+            first_day = self.dte_first_day.date()
+            last_day = self.dte_last_day.date()
             for file in files:
-                date = int(file[-12:-4])
+                date = QDate.fromString(file[-12:-4], 'yyyyMMdd')
                 if first_day <= date <= last_day:
                     target_files.append(file)
 
@@ -106,6 +110,10 @@ class Analyzer(AnalyzerBase):
             day_analysis.analyze(file, interval, loss_cut, fee_ratio)
             self.wook_analysis.add(day_analysis)
             self.debug(*day_analysis.get_summary())
+
+        if not target_files:
+            self.debug('No files available')
+            return
 
         winning_number = self.wook_analysis.get_winning_count()
         analysis_count = self.wook_analysis.get_count()
@@ -123,80 +131,40 @@ class Analyzer(AnalyzerBase):
         self.info('Total profit', self.formalize(total_profit))
         self.info('Total profit(net)', self.formalize(total_net_profit))
 
-    def save_as_candle_chart(self):
+    def go_candle_chart(self):
         interval = int(self.le_interval.text())
         load_folder = self.le_analysis_folder.text()
         all_files = glob(load_folder + '/' + '*.csv')
-        first_day = int(self.dte_first_day.date().toString('yyyyMMdd'))
-        last_day = int(self.dte_last_day.date().toString('yyyyMMdd'))
-        load_files = list()
+        first_day = QDate.fromString(self.lb_analysis_first_day.text(), 'yyyy-MM-dd')
+        last_day = QDate.fromString(self.lb_analysis_last_day.text(), 'yyyy-MM-dd')
+        files = list()
         if self.cb_all_days.isChecked():
-            load_files = all_files
+            files = all_files
         else:
             for file in all_files:
-                date = int(file[-12:-4])
+                date = QDate.fromString(file[-12:-4], 'yyyyMMdd')
                 if first_day <= date <= last_day:
-                    load_files.append(file)
+                    files.append(file)
 
-        mpl_color = mplfinance.make_marketcolors(up='tab:red', down='tab:blue', volume='Goldenrod')
-        mpl_style = mplfinance.make_mpf_style(base_mpl_style='seaborn', marketcolors=mpl_color)
-        # setup.update(dict(figscale=1.5, figratio=(1920, 1080), volume=True))
-
-
-
-
-
-
-        date = QDate.fromString(self.lb_analysis_first_day.text(), 'yyyy-MM-dd')
-        if not self.wook_analysis.has(date):
-            self.debug('Something is wrong. no data at that date')
+        if not files:
+            self.debug('No file is available in the period')
             return
 
-        interval = int(self.le_interval.text())
-        loss_cut = int(self.le_loss_cut.text())
-        day_analysis = self.wook_analysis.get_analysis(date)
-        file_name = day_analysis.file_name
+        if self.rb_show_chart.isChecked():
+            self.wook_chart.show_candle_chart(files[0], interval)
+        else:
+            for file in files:
+                self.wook_chart.save_candle_chart(file, interval)
+            self.debug('All charts have been saved')
 
-        # save_file = file[:-4] + '.png'
-        df = pd.read_csv(file_name, index_col=0, parse_dates=True)
-        max = df['High'].max()
-        min = df['Low'].min()
-        max_ceiling = math.ceil(max / interval) * interval
-        min_floor = math.floor(min / interval) * interval
-        yticks = list(range(min_floor, max_ceiling + interval, interval))
-        # setup = dict(type='candle', style=mpl_style, tight_layout=True, title=fig_title)
-        setup = dict(type='candle', style=mpl_style, tight_layout=True)
-        # setup.update(dict(savefig=save_file, figscale=2, figratio=(1920, 1080), volume=True))
-        setup.update(dict(figscale=2, figratio=(1920, 1080), volume=True))
-        setup.update(dict(hlines=dict(hlines=yticks[:-1], linewidths=0.1, colors='silver', alpha=1)))
-        mplfinance.plot(df, **setup)
-        self.debug('Chart converting', file_name)
-
-
-
-
-
-        #
-        # for file in load_files:
-        #     save_file = file[:-4] + '.png'
-        #     df = pd.read_csv(file, index_col=0, parse_dates=True)
-        #     max = df['High'].max()
-        #     min = df['Low'].min()
-        #     max_ceiling = math.ceil(max / interval) * interval
-        #     min_floor = math.floor(min / interval) * interval
-        #     yticks = list(range(min_floor, max_ceiling + interval, interval))
-        #     # setup = dict(type='candle', style=mpl_style, tight_layout=True, title=fig_title)
-        #     setup = dict(type='candle', style=mpl_style, tight_layout=True)
-        #     # setup.update(dict(savefig=save_file, figscale=2, figratio=(1920, 1080), volume=True))
-        #     setup.update(dict(figscale=2, figratio=(1920, 1080), volume=True))
-        #     setup.update(dict(hlines=dict(hlines=yticks[:-1], linewidths=0.1, colors='silver', alpha=1)))
-        #     mplfinance.plot(df, **setup)
-        #     self.kiwoom.log('Chart converting', file)
-        self.debug('Getting charts has been done')
+    def go_simplified_chart(self):
+        if self.rb_show_chart.isChecked():
+            self.show_simplified_chart()
+        else:
+            self.save_simplified_chart()
 
     def show_simplified_chart(self):
         date = QDate.fromString(self.lb_analysis_first_day.text(), 'yyyy-MM-dd')
-
         if not self.wook_analysis.has(date):
             self.status_bar.showMessage('No data at that date')
             self.debug('No data at that date')
@@ -205,38 +173,33 @@ class Analyzer(AnalyzerBase):
         interval = int(self.le_interval.text())
         loss_cut = int(self.le_loss_cut.text())
         day_analysis = self.wook_analysis.get_analysis(date)
-        file_name = day_analysis.file_name
-        prices = day_analysis.get_simplified_prices(file_name, interval, loss_cut)
+        self.wook_chart.show_simplified_chart(day_analysis, interval, loss_cut)
 
-        df = pd.read_csv(file_name)
-        max = df['High'].max()
-        min = df['Low'].min()
-        max_limit = math.ceil(max / interval) * interval
-        min_limit = math.floor(min / interval) * interval
-        ortho_prices = list(range(min_limit, max_limit + interval, interval))
-        cut_prices = [value + interval - loss_cut for value in ortho_prices[:-1]]
+    def save_simplified_chart(self):
+        interval = int(self.le_interval.text())
+        loss_cut = int(self.le_loss_cut.text())
+        first_day = QDate.fromString(self.lb_analysis_first_day.text(), 'yyyy-MM-dd')
+        last_day = QDate.fromString(self.lb_analysis_last_day.text(), 'yyyy-MM-dd')
+        all_analyses = self.wook_analysis.get_analyses()
+        analyses = list()
+        if self.cb_all_days.isChecked():
+            analyses = all_analyses
+        else:
+            for analysis in all_analyses:
+                if first_day <= analysis.date <= last_day:
+                    analyses.append(analysis)
 
-        # yticks = list(range(min_limit, max_limit + interval, interval))
-        plt.style.use('seaborn')
-        fig = plt.figure(figsize=(17, 8))
-        ax = fig.add_subplot()
-        ax.plot(prices, linewidth=2, color='peru', label='price')
-        ax.set_title('Processed price')
-        ax.set_xlabel('Time')
-        ax.set_ylabel('Price')
-        ax.legend(loc='best')
-        ax.set_ylim(min_limit, max_limit)
-        ax.set_yticks(ortho_prices)
-        for value in ortho_prices:
-            ax.axhline(y=value, color='blue', linewidth=0.3)
+        if not analyses:
+            self.debug('No analysis is available in the period')
+            return
 
-        for value in cut_prices:
-            ax.axhline(y=value, color='red', linewidth=0.1)
-
-        plt.show()
+        for analysis in analyses:
+            self.wook_chart.save_simplified_chart(analysis, interval, loss_cut)
+        self.debug('All charts have been saved')
 
     def display_report(self, analyses):
         self.clear_table(self.table_report)
+        row = 0
         for row, analysis in enumerate(analyses.values()):
             self.table_report.insertRow(row)
             self.table_report.setRowHeight(row, 6)
@@ -290,17 +253,21 @@ class Analyzer(AnalyzerBase):
 
     def on_change_first_day(self, date):
         self.kiwoom.first_day = date.toString('yyyy-MM-dd')
-        self.lb_analysis_first_day.setText(date.toString('yyyy-MM-dd'))
         self.cb_all_days.setChecked(False)
         if self.cb_one_day.isChecked():
             self.dte_last_day.setDate(date)
+        if self.rb_save_chart.isChecked():
+            self.lb_analysis_first_day.setText(date.toString('yyyy-MM-dd'))
+            self.lb_analysis_last_day.setText(self.dte_last_day.date().toString('yyyy-MM-dd'))
 
     def on_change_last_day(self, date):
         self.kiwoom.last_day = date.toString('yyyy-MM-dd')
-        self.lb_analysis_last_day.setText(date.toString('yyyy-MM-dd'))
         self.cb_all_days.setChecked(False)
         if self.cb_one_day.isChecked():
             self.dte_first_day.setDate(date)
+        if self.rb_save_chart.isChecked():
+            self.lb_analysis_first_day.setText(self.dte_first_day.date().toString('yyyy-MM-dd'))
+            self.lb_analysis_last_day.setText(date.toString('yyyy-MM-dd'))
 
     def on_edit_save_folder(self):
         folder = self.le_save_folder.text()
@@ -333,6 +300,10 @@ class Analyzer(AnalyzerBase):
             self.le_analysis_folder.setText(folder)
 
     def on_select_table_report(self, row, column):
+        row_count = self.table_report.rowCount() - 1
+        if row == row_count:
+            return
+
         column_count = self.table_report.columnCount() - 1
         selection_range = QTableWidgetSelectionRange(row, 0, row, column_count)
         self.table_report.setRangeSelected(selection_range, True)
@@ -346,15 +317,23 @@ class Analyzer(AnalyzerBase):
         time_text = time_item.text()
         self.lb_analysis_first_day.setText(time_text)
         self.lb_analysis_last_day.setText(time_text)
-
         self.btn_candle_chart.setEnabled(True)
         self.btn_simplified_chart.setEnabled(True)
 
     def on_select_save_chart(self):
-        self.debug('save')
+        self.btn_candle_chart.setEnabled(True)
+        self.btn_simplified_chart.setEnabled(True)
+        self.lb_analysis_first_day.setText(self.dte_first_day.text())
+        self.lb_analysis_last_day.setText(self.dte_last_day.text())
 
     def on_select_show_chart(self):
-        self.debug('show')
+        time_column = 1
+        index = self.table_report.selectedIndexes()[time_column]
+        row = index.row()
+        time_item = self.table_report.item(row, time_column)
+        time_text = time_item.text()
+        self.lb_analysis_first_day.setText(time_text)
+        self.lb_analysis_last_day.setText(time_text)
 
     def edit_setting(self):
         self.debug('setting')

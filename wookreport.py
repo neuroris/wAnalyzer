@@ -1,7 +1,11 @@
 from PyQt5.QtCore import QDate
-import os
+from wookutil import WookMath, WookLog
 import pandas
-from wookutil import WookMath
+import matplotlib.pyplot as plt
+from matplotlib import font_manager, rc
+import mplfinance
+import math
+import os
 
 class DayAnalysis(WookMath):
     def __init__(self):
@@ -133,6 +137,9 @@ class WookAnalysis:
     def get_analysis(self, analysis_date):
         return self.analyses[analysis_date]
 
+    def get_analyses(self):
+        return self.analyses.values()
+
     def get_count(self):
         return len(self.analyses)
 
@@ -195,3 +202,71 @@ class WookAnalysis:
         net_profit = self.get_total_net_profit()
         net_profit_rate = round(net_profit / self.get_average_price() * 100, 2)
         return net_profit_rate
+
+class WookChart(WookLog):
+    def __init__(self, log):
+        WookLog.custom_init(self, log)
+
+    def show_candle_chart(self, file_name, interval):
+        setup = dict(figscale=1.5)
+        self.set_candle_chart(file_name, interval, setup)
+        self.debug('Candle chart displayed')
+
+    def save_candle_chart(self, file_name, interval):
+        save_file = file_name[:-4] + '.png'
+        setup = dict(savefig=save_file, figscale=2)
+        self.set_candle_chart(file_name, interval, setup)
+        self.debug('Candle chart saved', save_file)
+
+    def set_candle_chart(self, file_name, interval, setup):
+        df = pandas.read_csv(file_name, index_col=0, parse_dates=True)
+        max_price = df['High'].max()
+        min_price = df['Low'].min()
+        max_ceiling = math.ceil(max_price / interval) * interval
+        min_floor = math.floor(min_price / interval) * interval
+        yticks = list(range(min_floor, max_ceiling + interval, interval))
+
+        mpl_color = mplfinance.make_marketcolors(up='tab:red', down='tab:blue', volume='Goldenrod')
+        mpl_style = mplfinance.make_mpf_style(base_mpl_style='seaborn', marketcolors=mpl_color)
+        setup.update(dict(type='candle', style=mpl_style, tight_layout=True))
+        setup.update(dict(figratio=(1920, 1080), volume=True))
+        setup.update(dict(hlines=dict(hlines=yticks[:-1], linewidths=0.1, colors='silver', alpha=1)))
+        mplfinance.plot(df, **setup)
+
+    def show_simplified_chart(self, day_analysis, interval, loss_cut):
+        self.set_simplified_chart(day_analysis, interval, loss_cut)
+        plt.show()
+        self.debug('Simplified chart displayed')
+
+    def save_simplified_chart(self, day_analysis, interval, loss_cut):
+        self.set_simplified_chart(day_analysis, interval, loss_cut)
+        file_name = day_analysis.file_name
+        save_file = file_name[:-12] + 'simplified ' + file_name[-12:-4] + '.png'
+        plt.savefig(save_file)
+        self.debug('Simplified chart saved', save_file)
+
+    def set_simplified_chart(self, day_analysis, interval, loss_cut):
+        file_name = day_analysis.file_name
+        prices = day_analysis.get_simplified_prices(file_name, interval, loss_cut)
+        df = pandas.read_csv(file_name)
+        max_price = df['High'].max()
+        min_price = df['Low'].min()
+        max_limit = math.ceil(max_price / interval) * interval
+        min_limit = math.floor(min_price / interval) * interval
+        ortho_prices = list(range(min_limit, max_limit + interval, interval))
+        cut_prices = [value + interval - loss_cut for value in ortho_prices[:-1]]
+
+        plt.style.use('seaborn')
+        fig = plt.figure(figsize=(17, 8))
+        ax = fig.add_subplot()
+        ax.plot(prices, linewidth=2, color='peru', label='price')
+        ax.set_title('Processed price')
+        ax.set_xlabel('Time')
+        ax.set_ylabel('Price')
+        ax.legend(loc='best')
+        ax.set_ylim(min_limit, max_limit)
+        ax.set_yticks(ortho_prices)
+        for value in ortho_prices:
+            ax.axhline(y=value, color='blue', linewidth=0.3)
+        for value in cut_prices:
+            ax.axhline(y=value, color='red', linewidth=0.1)
