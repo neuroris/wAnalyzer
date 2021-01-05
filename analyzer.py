@@ -89,8 +89,7 @@ class Analyzer(AnalyzerBase):
         loss_cut = int(self.le_loss_cut.text())
         fee_ratio = float(self.le_fee.text())
         files = glob(os.path.join(folder, '*.csv'))
-        if len(files) == 0:
-            self.status_bar.showMessage('No csv files in the folder')
+        if not files:
             self.debug('No csv files in the folder')
             return
 
@@ -137,65 +136,55 @@ class Analyzer(AnalyzerBase):
         all_files = glob(load_folder + '/' + '*.csv')
         first_day = QDate.fromString(self.lb_analysis_first_day.text(), 'yyyy-MM-dd')
         last_day = QDate.fromString(self.lb_analysis_last_day.text(), 'yyyy-MM-dd')
-        files = list()
-        if self.cb_all_days.isChecked():
-            files = all_files
-        else:
-            for file in all_files:
-                date = QDate.fromString(file[-12:-4], 'yyyyMMdd')
-                if first_day <= date <= last_day:
-                    files.append(file)
-
-        if not files:
-            self.debug('No file is available in the period')
-            return
 
         if self.rb_show_chart.isChecked():
-            self.wook_chart.show_candle_chart(files[0], interval)
+            day_analysis = self.wook_analysis.get_analysis(first_day)
+            file_name = day_analysis.file_name
+            self.wook_chart.show_candle_chart(file_name, interval)
         else:
+            files = list()
+            if self.cb_all_days.isChecked():
+                files = all_files
+            else:
+                for file in all_files:
+                    date = QDate.fromString(file[-12:-4], 'yyyyMMdd')
+                    if first_day <= date <= last_day:
+                        files.append(file)
+
+            if not files:
+                self.debug('No file is available in the period')
+                return
+
             for file in files:
                 self.wook_chart.save_candle_chart(file, interval)
             self.debug('All charts have been saved')
 
     def go_simplified_chart(self):
-        if self.rb_show_chart.isChecked():
-            self.show_simplified_chart()
-        else:
-            self.save_simplified_chart()
-
-    def show_simplified_chart(self):
-        date = QDate.fromString(self.lb_analysis_first_day.text(), 'yyyy-MM-dd')
-        if not self.wook_analysis.has(date):
-            self.status_bar.showMessage('No data at that date')
-            self.debug('No data at that date')
-            return
-
-        interval = int(self.le_interval.text())
-        loss_cut = int(self.le_loss_cut.text())
-        day_analysis = self.wook_analysis.get_analysis(date)
-        self.wook_chart.show_simplified_chart(day_analysis, interval, loss_cut)
-
-    def save_simplified_chart(self):
         interval = int(self.le_interval.text())
         loss_cut = int(self.le_loss_cut.text())
         first_day = QDate.fromString(self.lb_analysis_first_day.text(), 'yyyy-MM-dd')
         last_day = QDate.fromString(self.lb_analysis_last_day.text(), 'yyyy-MM-dd')
-        all_analyses = self.wook_analysis.get_analyses()
-        analyses = list()
-        if self.cb_all_days.isChecked():
-            analyses = all_analyses
+
+        if self.rb_show_chart.isChecked():
+            day_analysis = self.wook_analysis.get_analysis(first_day)
+            self.wook_chart.show_simplified_chart(day_analysis, interval, loss_cut)
         else:
-            for analysis in all_analyses:
-                if first_day <= analysis.date <= last_day:
-                    analyses.append(analysis)
+            all_analyses = self.wook_analysis.get_analyses()
+            analyses = list()
+            if self.cb_all_days.isChecked():
+                analyses = all_analyses
+            else:
+                for analysis in all_analyses:
+                    if first_day <= analysis.date <= last_day:
+                        analyses.append(analysis)
 
-        if not analyses:
-            self.debug('No analysis is available in the period')
-            return
+            if not analyses:
+                self.debug('No analysis is available in the period')
+                return
 
-        for analysis in analyses:
-            self.wook_chart.save_simplified_chart(analysis, interval, loss_cut)
-        self.debug('All charts have been saved')
+            for analysis in analyses:
+                self.wook_chart.save_simplified_chart(analysis, interval, loss_cut)
+            self.debug('All charts have been saved')
 
     def display_report(self, analyses):
         self.clear_table(self.table_report)
@@ -300,13 +289,16 @@ class Analyzer(AnalyzerBase):
             self.le_analysis_folder.setText(folder)
 
     def on_select_table_report(self, row, column):
-        row_count = self.table_report.rowCount() - 1
-        if row == row_count:
-            return
-
         column_count = self.table_report.columnCount() - 1
         selection_range = QTableWidgetSelectionRange(row, 0, row, column_count)
         self.table_report.setRangeSelected(selection_range, True)
+
+        row_count = self.table_report.rowCount()
+        if row == (row_count - 1):
+            self.btn_candle_chart.setEnabled(False)
+            self.btn_simplified_chart.setEnabled(False)
+            self.lb_analysis_item.setText('No Item')
+            return
 
         item_name_column = 0
         item_name_item = self.table_report.item(row, item_name_column)

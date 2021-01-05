@@ -153,7 +153,7 @@ class AnalyzerBase(QMainWindow, WookLog, WookUtil, WookMath):
         lb_fee = QLabel('Fee(%)')
         self.le_fee = QLineEdit()
         self.le_fee.setMaximumWidth(40)
-        self.le_fee.setText('0.03')
+        self.le_fee.setText('0.015')
 
         analysis_grid = QGridLayout()
         analysis_grid.addWidget(lb_analysis_folder, 0, 0)

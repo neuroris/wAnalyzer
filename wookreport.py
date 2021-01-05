@@ -1,5 +1,6 @@
 from PyQt5.QtCore import QDate
-from wookutil import WookMath, WookLog
+from wookutil import WookMath, WookLog, WookUtil
+from wookdata import *
 import pandas
 import matplotlib.pyplot as plt
 from matplotlib import font_manager, rc
@@ -7,7 +8,7 @@ import mplfinance
 import math
 import os
 
-class DayAnalysis(WookMath):
+class DayAnalysis(WookMath, WookUtil):
     def __init__(self):
         self.date = None
         self.item_name = ''
@@ -62,23 +63,25 @@ class DayAnalysis(WookMath):
         self.profit = (self.earning_count * interval) - (self.loss_count * loss_cut)
         self.profit_rate = round(self.profit / self.price_avg * 100, 2)
         transaction_number = self.earning_count + self.loss_count
-        self.transaction_fee = round(transaction_number * self.price_avg * fee_ratio / 100, 2)
+        self.transaction_fee = round(transaction_number * self.price_avg * fee_ratio * 2 / 100, 2)
         self.net_profit = round(self.profit - self.transaction_fee, 2)
         self.net_profit_rate = round(self.net_profit / self.price_avg * 100, 2)
 
     def get_simplified_prices(self, file_name, interval, loss_cut):
         df = pandas.read_csv(file_name)
-        initial_price = df.loc[0, 'Open']
+        df = self.normalize(file_name, df)
+        open_price = df['Open']
         high_price = df['High']
         low_price = df['Low']
-        open_price = df['Open']
         close_price = df['Close']
 
         # Main engine
         prices = list()
+        initial_price = open_price[0]
         prices.append(initial_price)
         get_floor = self.custom_get_floor(interval, loss_cut)
         get_ceiling = self.custom_get_ceiling(interval, loss_cut)
+        at_cut_price = self.custom_at_cut_price(interval)
         for index in df.index:
             low_floor = get_floor(low_price[index])
             high_ceiling = get_ceiling(high_price[index])
@@ -86,20 +89,22 @@ class DayAnalysis(WookMath):
                 while low_floor != get_floor(high_ceiling):
                     low_floor = get_ceiling(low_floor)
                     if prices[-1] != low_floor:
-                        if not self.at_cut_price(low_floor, interval):
+                        if not at_cut_price(low_floor):
                             prices.append(low_floor)
             else:
                 while low_floor != get_floor(high_ceiling):
                     high_ceiling = get_floor(high_ceiling - 1)
                     if prices[-1] != high_ceiling:
-                        if prices[-1] != get_floor(high_ceiling):
+                        if prices[-1] > high_ceiling:
+                            prices.append(high_ceiling)
+                        elif not at_cut_price(high_ceiling):
                             prices.append(high_ceiling)
 
         # Filter out descending loss cut
         processed_prices = list()
         processed_prices.append(initial_price)
         for index, price in enumerate(prices[1:-1]):
-            if self.at_cut_price(price, interval):
+            if at_cut_price(price):
                 ceiling = price + loss_cut
                 floor = price - (interval - loss_cut)
                 if not ((prices[index] == ceiling) and (prices[index + 2] == floor)):
@@ -203,8 +208,9 @@ class WookAnalysis:
         net_profit_rate = round(net_profit / self.get_average_price() * 100, 2)
         return net_profit_rate
 
-class WookChart(WookLog):
+class WookChart(WookLog, WookUtil):
     def __init__(self, log):
+        WookUtil.__init__(self)
         WookLog.custom_init(self, log)
 
     def show_candle_chart(self, file_name, interval):
@@ -220,6 +226,7 @@ class WookChart(WookLog):
 
     def set_candle_chart(self, file_name, interval, setup):
         df = pandas.read_csv(file_name, index_col=0, parse_dates=True)
+        df = self.normalize(file_name, df)
         max_price = df['High'].max()
         min_price = df['Low'].min()
         max_ceiling = math.ceil(max_price / interval) * interval
@@ -247,8 +254,10 @@ class WookChart(WookLog):
 
     def set_simplified_chart(self, day_analysis, interval, loss_cut):
         file_name = day_analysis.file_name
+        date = os.path.basename(file_name)[-12:-4]
         prices = day_analysis.get_simplified_prices(file_name, interval, loss_cut)
         df = pandas.read_csv(file_name)
+        df = self.normalize(file_name, df)
         max_price = df['High'].max()
         min_price = df['Low'].min()
         max_limit = math.ceil(max_price / interval) * interval
@@ -263,7 +272,7 @@ class WookChart(WookLog):
         ax.set_title('Processed price')
         ax.set_xlabel('Time')
         ax.set_ylabel('Price')
-        ax.legend(loc='best')
+        ax.legend(labels=[date], loc='best')
         ax.set_ylim(min_limit, max_limit)
         ax.set_yticks(ortho_prices)
         for value in ortho_prices:

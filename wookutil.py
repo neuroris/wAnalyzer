@@ -3,10 +3,11 @@ from PyQt5.QtCore import Qt, QThread
 from Cryptodome import Random
 from Cryptodome.Cipher import AES
 from Cryptodome.Util import Padding, strxor
+from wookdata import *
 import pandas
 import matplotlib.pyplot as plt
 import mplfinance
-import time, re, math
+import time, re, math, os
 
 class WookCipher:
     def __init__(self, key=None):
@@ -162,6 +163,12 @@ class WookMath:
             check_result = True
         return check_result
 
+    def custom_at_cut_price(self, interval):
+        def new_at_cut_price(price):
+            result = self.at_cut_price(price, interval)
+            return result
+        return new_at_cut_price
+
 class WookUtil:
     def __init__(self):
         pass
@@ -198,6 +205,13 @@ class WookUtil:
         processed_data = self.process_type(data)
         formalized_data = format(processed_data, ',')
         return formalized_data
+
+    def normalize(self, file_name, df):
+        file = os.path.basename(file_name)
+        if file[:2] == FUTURES_NAME:
+            df[['Open', 'High', 'Low', 'Close']] = df[['Open', 'High', 'Low', 'Close']] * 100
+            df = df.astype(int)
+        return df
 
     def to_item(self, data):
         if type(data) != str:
