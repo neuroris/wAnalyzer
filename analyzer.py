@@ -20,10 +20,9 @@ class Analyzer(AnalyzerBase):
         self.initKiwoom()
 
         self.te_info.append('===== Welcome to wAnalyzer =====')
-        # self.connect_kiwoom()
+        self.connect_kiwoom()
 
-        self.dte_first_day.setDate(QDate.fromString('20201201', 'yyyyMMdd'))
-
+        # self.dte_first_day.setDate(QDate.fromString('20210118', 'yyyyMMdd'))
         # self.cbb_item_name.setCurrentIndex(3)
         # self.cbb_item_code.setCurrentText('101R3000')
 
@@ -355,4 +354,4 @@ class Analyzer(AnalyzerBase):
         self.kiwoom.close_process()
         self.kiwoom.clear()
         self.kiwoom.deleteLater()
-        self.deleteLater()
+        # self.deleteLater()

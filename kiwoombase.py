@@ -54,11 +54,13 @@ class KiwoomBase(QAxWidget, WookLog, WookUtil):
         self.reference_time = Queue()
         self.consecutive_interval_limit = 0.25
         self.request_block_time_limit = 5
+        # self.request_block_time_limit = 10
         self.request_block_size = 10
         self.request_count = 0
         self.request_count_threshold = 90
         self.request_count_interval = 60
         self.request_count_waiting = 30
+        # self.request_count_waiting = 300
 
         self.interesting_stocks_file = 'interesting_stocks.bin'
 
